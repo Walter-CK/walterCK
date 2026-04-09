@@ -17,7 +17,10 @@ function copyLink(btn, url) {
   navigator.clipboard.writeText(url).then(() => {
     btn.textContent = 'Copied';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
   }).catch(() => {
     btn.textContent = 'Failed';
     setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
