@@ -566,3 +566,26 @@ if (navType === 'back_forward' || window.scrollY > 1) {
     })
     .catch(() => {});
 })();
+
+// 404 Page
+(function () {
+  const container = document.getElementById('particles');
+  if (!container) return;
+
+  const count = 18;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size    = Math.random() * 3 + 1;
+    const opacity = Math.random() * 0.25 + 0.05;
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      width: ${size}px;
+      height: ${size}px;
+      --p-opacity: ${opacity};
+      animation-duration: ${Math.random() * 14 + 10}s;
+      animation-delay: ${Math.random() * -20}s;
+    `;
+    container.appendChild(p);
+  }
+})();
