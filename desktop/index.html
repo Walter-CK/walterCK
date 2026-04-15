@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WalterCK · Desktop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Tokens ─── */
+    :root {
+      --bg:        #05070a;
+      --bg2:       #0c1020;
+      --accent:    #6b8cff;
+      --accent2:   #5be6c0;
+      --glow:      rgba(107,140,255,0.22);
+      --glow2:     rgba(91,230,192,0.18);
+      --text:      #e6eef6;
+      --muted:     #4a5a72;
+      --glass:     rgba(255,255,255,0.035);
+      --border:    rgba(255,255,255,0.07);
+      --radius:    14px;
+      --font:      'Oxanium', sans-serif;
+    }
+
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      user-select: none;
+    }
+
+    /* ─── Background layers ─── */
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    .glow-orb {
+      position: fixed; border-radius: 50%; filter: blur(90px);
+      pointer-events: none; z-index: 0;
+    }
+    .glow-orb.a {
+      width: 600px; height: 600px;
+      top: -150px; left: -100px;
+      background: radial-gradient(circle, rgba(107,140,255,0.12) 0%, transparent 70%);
+    }
+    .glow-orb.b {
+      width: 500px; height: 500px;
+      bottom: -100px; right: -80px;
+      background: radial-gradient(circle, rgba(91,230,192,0.10) 0%, transparent 70%);
+    }
+    .glow-orb.c {
+      width: 300px; height: 300px;
+      top: 40%; left: 50%; transform: translate(-50%,-50%);
+      background: radial-gradient(circle, rgba(107,140,255,0.06) 0%, transparent 70%);
+    }
+
+    /* Grid overlay */
+    .grid-overlay {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(107,140,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(107,140,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Rain */
+    .rain { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+    .drop {
+      position: absolute; top: -40px;
+      width: 1px; height: 32px;
+      background: linear-gradient(to bottom, transparent, rgba(107,140,255,0.35));
+      animation: fall linear infinite;
+      border-radius: 1px;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh); }
+    }
+
+    /* Scan line */
+    .scanline {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+      );
+    }
+
+    /* ─── Layout ─── */
+    #app {
+      position: relative; z-index: 10;
+      width: 100vw; height: 100vh;
+      display: grid;
+      grid-template-columns: 300px 1fr 280px;
+      grid-template-rows: auto 1fr auto;
+      gap: 20px;
+      padding: 28px;
+      pointer-events: none;
+    }
+    #app > * { pointer-events: all; }
+
+    /* ─── Panel base ─── */
+    .panel {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(107,140,255,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .panel-title {
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+
+    /* ─── Clock ─── */
+    #clock-panel {
+      grid-column: 2; grid-row: 1;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 22px 28px;
+      background: transparent; border: none;
+      backdrop-filter: none;
+    }
+    #clock-panel::before { display: none; }
+
+    #time-display {
+      font-size: clamp(3.5rem, 6vw, 6rem);
+      font-weight: 800; letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 60%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      line-height: 1;
+      filter: drop-shadow(0 0 30px rgba(107,140,255,0.4));
+    }
+    #date-display {
+      font-size: 0.95rem; font-weight: 400; color: var(--muted);
+      letter-spacing: 0.05em; margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    /* Analog clock */
+    #analog {
+      width: 80px; height: 80px; position: relative; margin-top: 14px;
+    }
+    .clock-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 1.5px solid rgba(107,140,255,0.25);
+      box-shadow: 0 0 18px rgba(107,140,255,0.15), inset 0 0 10px rgba(107,140,255,0.05);
+    }
+    .hand {
+      position: absolute; bottom: 50%; left: 50%;
+      transform-origin: bottom center;
+      border-radius: 3px 3px 0 0;
+    }
+    #hourHand   { width: 2px; height: 24px; background: var(--text); margin-left: -1px; }
+    #minuteHand { width: 1.5px; height: 30px; background: var(--accent); margin-left: -0.75px; }
+    #secondHand { width: 1px; height: 32px; background: var(--accent2); margin-left: -0.5px; }
+    .clock-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* ─── Lists ─── */
+    #lists-panel {
+      grid-column: 1; grid-row: 1 / 3;
+      display: flex; flex-direction: column; gap: 14px;
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    #lists-panel::-webkit-scrollbar { display: none; }
+
+    .list-block { flex-shrink: 0; }
+    .list-label {
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; padding-left: 2px;
+    }
+    .list-box {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      min-height: 80px;
+      font-family: var(--font);
+      font-size: 0.85rem; line-height: 1.7;
+      color: var(--text);
+      outline: none; resize: none;
+      white-space: pre-wrap; word-break: break-word;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .list-box:focus {
+      border-color: rgba(107,140,255,0.45);
+      box-shadow: 0 0 0 2px rgba(107,140,255,0.08), 0 0 20px rgba(107,140,255,0.06);
+    }
+    .list-sync-note {
+      font-size: 0.55rem; color: var(--muted);
+      text-align: right; margin-top: 4px;
+      letter-spacing: 0.05em; opacity: 0.6;
+    }
+
+    /* ─── Tuya Buttons ─── */
+    #tuya-panel {
+      grid-column: 3; grid-row: 1 / 3;
+      display: flex; flex-direction: column;
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    #tuya-panel::-webkit-scrollbar { display: none; }
+
+    #server-status {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #ff4545; flex-shrink: 0;
+      transition: background 0.3s;
+      box-shadow: 0 0 6px currentColor;
+    }
+    .status-dot.online { background: var(--accent2); }
+    #status-text { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+
+    #scripts-list {
+      display: flex; flex-direction: column; gap: 9px;
+      flex: 1;
+    }
+
+    .script-btn {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 14px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text); font-family: var(--font);
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; text-align: left;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+      position: relative; overflow: hidden;
+    }
+    .script-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, rgba(107,140,255,0) 0%, rgba(107,140,255,0.08) 100%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .script-btn:hover { border-color: rgba(107,140,255,0.4); transform: translateX(3px); }
+    .script-btn:hover::after { opacity: 1; }
+    .script-btn:active { transform: translateX(1px) scale(0.99); }
+    .script-btn.fired { border-color: var(--accent2); box-shadow: 0 0 14px rgba(91,230,192,0.2); }
+
+    .btn-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(107,140,255,0.12);
+      border: 1px solid rgba(107,140,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .script-btn:hover .btn-icon { background: rgba(107,140,255,0.22); }
+    .btn-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-arrow { font-size: 0.65rem; color: var(--muted); opacity: 0; transition: opacity 0.2s; }
+    .script-btn:hover .btn-arrow { opacity: 1; }
+
+    .no-server {
+      font-size: 0.75rem; color: var(--muted); line-height: 1.6;
+      padding: 12px 0; text-align: center;
+    }
+    .no-server strong { color: var(--accent); display: block; margin-bottom: 6px; }
+
+    /* ─── Bottom bar ─── */
+    #bottom-bar {
+      grid-column: 1 / 4; grid-row: 3;
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 16px;
+    }
+    .bottom-tag {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); opacity: 0.5;
+    }
+    .bottom-tag.brand { color: var(--accent); opacity: 0.8; }
+    .dot-sep { color: var(--muted); opacity: 0.3; font-size: 0.5rem; }
+
+    /* ─── Particles ─── */
+    .particle {
+      position: fixed; pointer-events: none; z-index: 1;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: float-up linear infinite;
+    }
+    @keyframes float-up {
+      0%   { transform: translateY(0) scale(1); opacity: var(--op); }
+      100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+    }
+
+    /* ─── Responsive tweaks ─── */
+    @media (max-width: 1200px) {
+      #app { grid-template-columns: 260px 1fr 240px; padding: 20px; gap: 16px; }
+    }
+    @media (max-width: 900px) {
+      #app {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto 1fr auto;
+      }
+      #clock-panel { grid-column: 1 / 3; }
+      #lists-panel { grid-column: 1; grid-row: 2; }
+      #tuya-panel  { grid-column: 2; grid-row: 2; }
+    }
+
+    /* ─── Lightning flash ─── */
+    #flash {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(107,140,255,0.06);
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.05s;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background -->
+  <canvas id="bg-canvas"></canvas>
+  <div class="glow-orb a"></div>
+  <div class="glow-orb b"></div>
+  <div class="glow-orb c"></div>
+  <div class="grid-overlay"></div>
+  <div class="rain" id="rain"></div>
+  <div class="scanline"></div>
+  <div id="flash"></div>
+
+  <!-- App -->
+  <div id="app">
+
+    <!-- ── LISTS (left) ── -->
+    <div id="lists-panel" class="panel">
+      <div class="panel-title">📋 Notes</div>
+
+      <div class="list-block">
+        <div class="list-label">To Do</div>
+        <div class="list-box" id="lb-todo" data-key="wck_todo" contenteditable="true" spellcheck="false">• </div>
+      </div>
+
+      <div class="list-block">
+        <div class="list-label">Homework</div>
+        <div class="list-box" id="lb-homework" data-key="wck_homework" contenteditable="true" spellcheck="false">• </div>
+      </div>
+
+      <div class="list-block">
+        <div class="list-label">Assessments</div>
+        <div class="list-box" id="lb-assessments" data-key="wck_assessments" contenteditable="true" spellcheck="false">• </div>
+      </div>
+
+      <div class="list-block">
+        <div class="list-label">Goals</div>
+        <div class="list-box" id="lb-goals" data-key="wck_goals" contenteditable="true" spellcheck="false">• </div>
+      </div>
+
+      <div class="list-block">
+        <div class="list-label">Projects</div>
+        <div class="list-box" id="lb-projects" data-key="wck_projects" contenteditable="true" spellcheck="false">• </div>
+      </div>
+
+      <div class="list-sync-note">↑ saved locally · walterck.com</div>
+    </div>
+
+    <!-- ── CLOCK (center top) ── -->
+    <div id="clock-panel">
+      <div id="time-display">00:00:00</div>
+      <div id="date-display">Wednesday, 15 April</div>
+      <div id="analog">
+        <div class="clock-ring"></div>
+        <div class="hand" id="hourHand"></div>
+        <div class="hand" id="minuteHand"></div>
+        <div class="hand" id="secondHand"></div>
+        <div class="clock-center"></div>
+      </div>
+    </div>
+
+    <!-- ── TUYA SCRIPTS (right) ── -->
+    <div id="tuya-panel" class="panel">
+      <div class="panel-title">⚡ Tuya Scenes</div>
+      <div id="server-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting…</span>
+      </div>
+      <div id="scripts-list">
+        <div class="no-server">
+          <strong>Server not detected</strong>
+          Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BOTTOM BAR ── -->
+    <div id="bottom-bar" class="panel">
+      <span class="bottom-tag brand">WalterCK</span>
+      <span class="dot-sep">●</span>
+      <span class="bottom-tag" id="bottom-time">–</span>
+      <span class="dot-sep">●</span>
+      <span class="bottom-tag" id="bottom-date">–</span>
+      <span style="flex:1"></span>
+      <span class="bottom-tag" id="bottom-sys">Desktop</span>
+    </div>
+
+  </div>
+
+  <script>
+  /* ══════════════════════════════════════════
+     RAIN
+  ══════════════════════════════════════════ */
+  (function () {
+    const rain = document.getElementById('rain');
+    for (let i = 0; i < 130; i++) {
+      const d = document.createElement('div');
+      d.className = 'drop';
+      d.style.left = Math.random() * 100 + 'vw';
+      const dur = (Math.random() * 2.5 + 1.8).toFixed(2);
+      d.style.animationDuration = dur + 's';
+      d.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
+      d.style.opacity = (Math.random() * 0.5 + 0.05).toFixed(2);
+      d.style.height = (Math.random() * 22 + 14) + 'px';
+      rain.appendChild(d);
+    }
+  })();
+
+  /* ══════════════════════════════════════════
+     FLOATING PARTICLES
+  ══════════════════════════════════════════ */
+  (function () {
+    for (let i = 0; i < 22; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 2.5 + 0.5;
+      const op   = (Math.random() * 0.15 + 0.03).toFixed(3);
+      p.style.cssText = `
+        left: ${Math.random() * 100}%;
+        bottom: -10px;
+        width: ${size}px; height: ${size}px;
+        --op: ${op};
+        animation-duration: ${(Math.random() * 18 + 10).toFixed(1)}s;
+        animation-delay: ${(-Math.random() * 20).toFixed(1)}s;
+      `;
+      document.body.appendChild(p);
+    }
+  })();
+
+  /* ══════════════════════════════════════════
+     BACKGROUND CANVAS — aurora lines
+  ══════════════════════════════════════════ */
+  (function () {
+    const cvs = document.getElementById('bg-canvas');
+    const ctx = cvs.getContext('2d');
+    let W, H, t = 0;
+
+    function resize() {
+      W = cvs.width  = window.innerWidth;
+      H = cvs.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const lines = Array.from({ length: 5 }, (_, i) => ({
+      phase: (i / 5) * Math.PI * 2,
+      amp:   60 + i * 20,
+      speed: 0.0004 + i * 0.00015,
+      y:     0.2 + i * 0.15,
+      alpha: 0.018 + i * 0.006,
+    }));
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      t += 0.6;
+      lines.forEach(l => {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 3) {
+          const y = H * l.y + Math.sin(x * 0.004 + t * l.speed * 1000 + l.phase) * l.amp;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `rgba(107,140,255,${l.alpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  /* ══════════════════════════════════════════
+     CLOCK
+  ══════════════════════════════════════════ */
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+
+    document.getElementById('time-display').textContent =
+      `${pad(h)}:${pad(m)}:${pad(s)}`;
+
+    const dateStr = `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
+    document.getElementById('date-display').textContent = dateStr;
+
+    // Analog
+    const h12 = h % 12;
+    document.getElementById('hourHand').style.transform =
+      `rotate(${(h12 + m / 60) * 30}deg)`;
+    document.getElementById('minuteHand').style.transform =
+      `rotate(${(m + s / 60) * 6}deg)`;
+    document.getElementById('secondHand').style.transform =
+      `rotate(${s * 6}deg)`;
+
+    // Bottom bar
+    document.getElementById('bottom-time').textContent =
+      `${pad(h)}:${pad(m)}`;
+    document.getElementById('bottom-date').textContent =
+      `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  /* ══════════════════════════════════════════
+     OCCASIONAL LIGHTNING FLASH
+  ══════════════════════════════════════════ */
+  (function lightningLoop() {
+    const flash = document.getElementById('flash');
+    const delay = 8000 + Math.random() * 20000;
+    setTimeout(() => {
+      flash.style.opacity = '1';
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => { flash.style.opacity = '1';
+          setTimeout(() => { flash.style.opacity = '0'; lightningLoop(); }, 80);
+        }, 120);
+      }, 60);
+    }, delay);
+  })();
+
+  /* ══════════════════════════════════════════
+     LISTS — localStorage (UpNote has no API)
+     Each edit is auto-saved.
+  ══════════════════════════════════════════ */
+  document.querySelectorAll('.list-box').forEach(box => {
+    const key = box.dataset.key;
+    const saved = localStorage.getItem(key);
+    if (saved) box.innerText = saved;
+    else        box.innerText = '• ';
+
+    box.addEventListener('input', () => {
+      localStorage.setItem(key, box.innerText);
+    });
+
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.execCommand('insertText', false, '\n• ');
+      }
+      if (e.key === 'Backspace') {
+        const sel = window.getSelection();
+        if (sel && sel.focusOffset === 2) {
+          // keep the leading bullet on first line
+        }
+      }
+    });
+  });
+
+  /* ══════════════════════════════════════════
+     TUYA SERVER
+  ══════════════════════════════════════════ */
+  const SERVER = 'http://localhost:8765';
+  const dot    = document.getElementById('status-dot');
+  const stxt   = document.getElementById('status-text');
+  const sList  = document.getElementById('scripts-list');
+
+  const ICONS = [
+    '💡','🌙','☀️','🔴','🟢','🔵','🟡','🟣','🟠','⚡',
+    '🌈','🔆','🌟','❄️','🔥','🌊','🌿','🎨','🎛️','🏠'
+  ];
+
+  function scriptIcon(name, idx) {
+    const n = name.toLowerCase();
+    if (n.includes('off') || n.includes('sleep')) return '🌙';
+    if (n.includes('on')  || n.includes('wake'))  return '☀️';
+    if (n.includes('red'))   return '🔴';
+    if (n.includes('green')) return '🟢';
+    if (n.includes('blue'))  return '🔵';
+    if (n.includes('warm'))  return '🟡';
+    if (n.includes('cool'))  return '❄️';
+    if (n.includes('fire') || n.includes('flame')) return '🔥';
+    if (n.includes('night')) return '🌙';
+    if (n.includes('bright') || n.includes('max')) return '🔆';
+    return ICONS[idx % ICONS.length];
+  }
+
+  function buildScriptButtons(scripts) {
+    sList.innerHTML = '';
+    if (!scripts.length) {
+      sList.innerHTML = '<div class="no-server">No .py scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes</code></div>';
+      return;
+    }
+    scripts.forEach((name, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'script-btn';
+      const label = name.replace(/\.py$/i, '').replace(/[-_]/g, ' ');
+      btn.innerHTML = `
+        <div class="btn-icon">${scriptIcon(name, i)}</div>
+        <span class="btn-name">${label}</span>
+        <span class="btn-arrow">▶</span>
+      `;
+      btn.title = name;
+      btn.addEventListener('click', () => runScript(name, btn));
+      sList.appendChild(btn);
+    });
+  }
+
+  function runScript(name, btn) {
+    fetch(`${SERVER}/run?script=${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          btn.classList.add('fired');
+          setTimeout(() => btn.classList.remove('fired'), 1800);
+          triggerFlash();
+        }
+      })
+      .catch(() => {});
+  }
+
+  function triggerFlash() {
+    const f = document.getElementById('flash');
+    f.style.opacity = '1';
+    setTimeout(() => f.style.opacity = '0', 80);
+  }
+
+  async function checkServer() {
+    try {
+      const r = await fetch(`${SERVER}/ping`, { signal: AbortSignal.timeout(1500) });
+      const d = await r.json();
+      if (d.alive) {
+        dot.classList.add('online');
+        stxt.textContent = 'Bridge online';
+        loadScripts();
+      } else throw new Error();
+    } catch {
+      dot.classList.remove('online');
+      stxt.textContent = 'Server offline';
+      sList.innerHTML = `<div class="no-server"><strong>Bridge not running</strong>Start <code style="color:var(--accent2)">tuya_server.py</code> with pythonw.exe</div>`;
+    }
+  }
+
+  async function loadScripts() {
+    try {
+      const r = await fetch(`${SERVER}/list`);
+      const d = await r.json();
+      buildScriptButtons(d.scripts || []);
+    } catch {}
+  }
+
+  // Check server on load and every 10s
+  checkServer();
+  setInterval(checkServer, 10000);
+
+  /* ══════════════════════════════════════════
+     BOTTOM SYS INFO
+  ══════════════════════════════════════════ */
+  document.getElementById('bottom-sys').textContent =
+    `${screen.width}×${screen.height} · WalterCK Desktop`;
+
+  </script>
+</body>
+</html>
