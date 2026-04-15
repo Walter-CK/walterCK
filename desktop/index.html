@@ -92,7 +92,7 @@
       width: 100vw; height: 100vh;
       display: grid;
       grid-template-columns: 300px 1fr 280px;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto 1fr;
       gap: 20px;
       padding: 28px;
       pointer-events: none;
@@ -120,7 +120,6 @@
       font-size: 0.62rem; font-weight: 700;
       letter-spacing: 0.15em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 14px;
-      font-family: var(--font);
     }
 
     /* ─── Clock ─── */
@@ -140,14 +139,14 @@
       -webkit-background-clip: text; background-clip: text; color: transparent;
       line-height: 1;
       filter: drop-shadow(0 0 30px rgba(107,140,255,0.4));
-      font-family: var(--font);
     }
     #date-display {
       font-size: 0.95rem; font-weight: 400; color: var(--muted);
       letter-spacing: 0.05em; margin-top: 8px;
       text-transform: uppercase;
-      font-family: var(--font);
     }
+
+
 
     /* ─── Lists ─── */
     #lists-panel {
@@ -163,7 +162,6 @@
       font-size: 0.6rem; font-weight: 700;
       letter-spacing: 0.16em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 8px; padding-left: 2px;
-      font-family: var(--font);
     }
     .list-box {
       background: var(--glass);
@@ -186,7 +184,6 @@
       font-size: 0.55rem; color: var(--muted);
       text-align: right; margin-top: 4px;
       letter-spacing: 0.05em; opacity: 0.6;
-      font-family: var(--font);
     }
 
     /* ─── Tuya Buttons ─── */
@@ -209,10 +206,7 @@
       box-shadow: 0 0 6px currentColor;
     }
     .status-dot.online { background: var(--accent2); }
-    #status-text {
-      font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em;
-      font-family: var(--font);
-    }
+    #status-text { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
 
     #scripts-list {
       display: flex; flex-direction: column; gap: 9px;
@@ -241,7 +235,6 @@
     .script-btn:hover::after { opacity: 1; }
     .script-btn:active { transform: translateX(1px) scale(0.99); }
     .script-btn.fired { border-color: var(--accent2); box-shadow: 0 0 14px rgba(91,230,192,0.2); }
-    .script-btn.error { border-color: rgba(255,69,69,0.5); box-shadow: 0 0 14px rgba(255,69,69,0.15); }
 
     .btn-icon {
       width: 28px; height: 28px; border-radius: 8px;
@@ -259,24 +252,10 @@
     .no-server {
       font-size: 0.75rem; color: var(--muted); line-height: 1.6;
       padding: 12px 0; text-align: center;
-      font-family: var(--font);
     }
     .no-server strong { color: var(--accent); display: block; margin-bottom: 6px; }
-    .no-server code { color: var(--accent2); font-family: var(--font); font-size: 0.7rem; }
 
-    /* ─── Bottom bar ─── */
-    #bottom-bar {
-      grid-column: 1 / 4; grid-row: 3;
-      display: flex; align-items: center; gap: 16px;
-      padding: 12px 16px;
-    }
-    .bottom-tag {
-      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--muted); opacity: 0.5;
-      font-family: var(--font);
-    }
-    .bottom-tag.brand { color: var(--accent); opacity: 0.8; }
-    .dot-sep { color: var(--muted); opacity: 0.3; font-size: 0.5rem; }
+
 
     /* ─── Particles ─── */
     .particle {
@@ -364,6 +343,7 @@
     <div id="clock-panel">
       <div id="time-display">00:00:00</div>
       <div id="date-display">Wednesday, 15 April</div>
+
     </div>
 
     <!-- ── TUYA SCRIPTS (right) ── -->
@@ -375,21 +355,10 @@
       </div>
       <div id="scripts-list">
         <div class="no-server">
-          <strong>Runner not detected</strong>
-          Start <code>tuya_runner.py</code> to enable scene buttons.
+          <strong>Server not detected</strong>
+          Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
         </div>
       </div>
-    </div>
-
-    <!-- ── BOTTOM BAR ── -->
-    <div id="bottom-bar" class="panel">
-      <span class="bottom-tag brand">WalterCK</span>
-      <span class="dot-sep">●</span>
-      <span class="bottom-tag" id="bottom-time">–</span>
-      <span class="dot-sep">●</span>
-      <span class="bottom-tag" id="bottom-date">–</span>
-      <span style="flex:1"></span>
-      <span class="bottom-tag" id="bottom-sys">Desktop</span>
     </div>
 
   </div>
@@ -494,11 +463,6 @@
     const dateStr = `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
     document.getElementById('date-display').textContent = dateStr;
 
-    // Bottom bar
-    document.getElementById('bottom-time').textContent =
-      `${pad(h)}:${pad(m)}`;
-    document.getElementById('bottom-date').textContent =
-      `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
   }
 
   setInterval(updateClock, 1000);
@@ -522,7 +486,8 @@
   })();
 
   /* ══════════════════════════════════════════
-     LISTS — localStorage
+     LISTS — localStorage (UpNote has no API)
+     Each edit is auto-saved.
   ══════════════════════════════════════════ */
   document.querySelectorAll('.list-box').forEach(box => {
     const key = box.dataset.key;
@@ -539,14 +504,17 @@
         e.preventDefault();
         document.execCommand('insertText', false, '\n• ');
       }
+      if (e.key === 'Backspace') {
+        const sel = window.getSelection();
+        if (sel && sel.focusOffset === 2) {
+          // keep the leading bullet on first line
+        }
+      }
     });
   });
 
   /* ══════════════════════════════════════════
-     TUYA BAT RUNNER
-     Talks to tuya_runner.py (localhost:8765)
-     which directly runs .bat files from
-     C:\Scripts\Tuya Scenes\Bones
+     TUYA SERVER
   ══════════════════════════════════════════ */
   const SERVER = 'http://localhost:8765';
   const dot    = document.getElementById('status-dot');
@@ -560,41 +528,29 @@
 
   function scriptIcon(name, idx) {
     const n = name.toLowerCase();
-    if (n.includes('off') || n.includes('sleep') || n.includes('night')) return '🌙';
+    if (n.includes('off') || n.includes('sleep')) return '🌙';
     if (n.includes('on')  || n.includes('wake'))  return '☀️';
-    if (n.includes('red'))    return '🔴';
-    if (n.includes('green'))  return '🟢';
-    if (n.includes('blue'))   return '🔵';
-    if (n.includes('warm'))   return '🟡';
-    if (n.includes('cool'))   return '❄️';
-    if (n.includes('fire') || n.includes('flame') || n.includes('inferno')) return '🔥';
+    if (n.includes('red'))   return '🔴';
+    if (n.includes('green')) return '🟢';
+    if (n.includes('blue'))  return '🔵';
+    if (n.includes('warm'))  return '🟡';
+    if (n.includes('cool'))  return '❄️';
+    if (n.includes('fire') || n.includes('flame')) return '🔥';
+    if (n.includes('night')) return '🌙';
     if (n.includes('bright') || n.includes('max')) return '🔆';
-    if (n.includes('nebula') || n.includes('purple')) return '🟣';
-    if (n.includes('toggle')) return '🔄';
     return ICONS[idx % ICONS.length];
-  }
-
-  function cleanLabel(filename) {
-    // Strip .bat extension, replace separators with spaces, trim
-    return filename
-      .replace(/\.bat$/i, '')
-      .replace(/[-_]/g, ' ')
-      .trim();
   }
 
   function buildScriptButtons(scripts) {
     sList.innerHTML = '';
     if (!scripts.length) {
-      sList.innerHTML = `<div class="no-server">
-        <strong>No scenes found</strong>
-        Add <code>.bat</code> files to<br><code>C:\\Scripts\\Tuya Scenes\\Bones</code>
-      </div>`;
+      sList.innerHTML = '<div class="no-server">No .bat scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes\\Bones</code></div>';
       return;
     }
     scripts.forEach((name, i) => {
       const btn = document.createElement('button');
       btn.className = 'script-btn';
-      const label = cleanLabel(name);
+      const label = name.replace(/\.bat$/i, '').replace(/[-_]/g, ' ');
       btn.innerHTML = `
         <div class="btn-icon">${scriptIcon(name, i)}</div>
         <span class="btn-name">${label}</span>
@@ -607,30 +563,16 @@
   }
 
   function runScript(name, btn) {
-    btn.style.opacity = '0.6';
-    btn.style.pointerEvents = 'none';
-
     fetch(`${SERVER}/run?script=${encodeURIComponent(name)}`)
       .then(r => r.json())
       .then(data => {
-        btn.style.opacity = '';
-        btn.style.pointerEvents = '';
         if (data.ok) {
           btn.classList.add('fired');
-          btn.classList.remove('error');
-          setTimeout(() => btn.classList.remove('fired'), 2000);
+          setTimeout(() => btn.classList.remove('fired'), 1800);
           triggerFlash();
-        } else {
-          btn.classList.add('error');
-          setTimeout(() => btn.classList.remove('error'), 2000);
         }
       })
-      .catch(() => {
-        btn.style.opacity = '';
-        btn.style.pointerEvents = '';
-        btn.classList.add('error');
-        setTimeout(() => btn.classList.remove('error'), 2000);
-      });
+      .catch(() => {});
   }
 
   function triggerFlash() {
@@ -645,16 +587,13 @@
       const d = await r.json();
       if (d.alive) {
         dot.classList.add('online');
-        stxt.textContent = 'Runner online';
+        stxt.textContent = 'Bridge online';
         loadScripts();
       } else throw new Error();
     } catch {
       dot.classList.remove('online');
-      stxt.textContent = 'Runner offline';
-      sList.innerHTML = `<div class="no-server">
-        <strong>Runner not running</strong>
-        Start <code>tuya_runner.py</code><br>with <code>pythonw.exe</code>
-      </div>`;
+      stxt.textContent = 'Server offline';
+      sList.innerHTML = `<div class="no-server"><strong>Bridge not running</strong>Start <code style="color:var(--accent2)">tuya_server.py</code> with pythonw.exe</div>`;
     }
   }
 
@@ -666,15 +605,10 @@
     } catch {}
   }
 
+  // Check server on load and every 10s
   checkServer();
   setInterval(checkServer, 10000);
 
-  /* ══════════════════════════════════════════
-     BOTTOM SYS INFO
-  ══════════════════════════════════════════ */
-  document.getElementById('bottom-sys').textContent =
-    `${screen.width}×${screen.height} · WalterCK Desktop`;
-
-  </script>
+</script>
 </body>
 </html>
