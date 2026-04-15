@@ -120,6 +120,7 @@
       font-size: 0.62rem; font-weight: 700;
       letter-spacing: 0.15em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 14px;
+      font-family: var(--font);
     }
 
     /* ─── Clock ─── */
@@ -139,34 +140,13 @@
       -webkit-background-clip: text; background-clip: text; color: transparent;
       line-height: 1;
       filter: drop-shadow(0 0 30px rgba(107,140,255,0.4));
+      font-family: var(--font);
     }
     #date-display {
       font-size: 0.95rem; font-weight: 400; color: var(--muted);
       letter-spacing: 0.05em; margin-top: 8px;
       text-transform: uppercase;
-    }
-
-    /* Analog clock */
-    #analog {
-      width: 80px; height: 80px; position: relative; margin-top: 14px;
-    }
-    .clock-ring {
-      position: absolute; inset: 0; border-radius: 50%;
-      border: 1.5px solid rgba(107,140,255,0.25);
-      box-shadow: 0 0 18px rgba(107,140,255,0.15), inset 0 0 10px rgba(107,140,255,0.05);
-    }
-    .hand {
-      position: absolute; bottom: 50%; left: 50%;
-      transform-origin: bottom center;
-      border-radius: 3px 3px 0 0;
-    }
-    #hourHand   { width: 2px; height: 24px; background: var(--text); margin-left: -1px; }
-    #minuteHand { width: 1.5px; height: 30px; background: var(--accent); margin-left: -0.75px; }
-    #secondHand { width: 1px; height: 32px; background: var(--accent2); margin-left: -0.5px; }
-    .clock-center {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      font-family: var(--font);
     }
 
     /* ─── Lists ─── */
@@ -183,6 +163,7 @@
       font-size: 0.6rem; font-weight: 700;
       letter-spacing: 0.16em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 8px; padding-left: 2px;
+      font-family: var(--font);
     }
     .list-box {
       background: var(--glass);
@@ -205,6 +186,7 @@
       font-size: 0.55rem; color: var(--muted);
       text-align: right; margin-top: 4px;
       letter-spacing: 0.05em; opacity: 0.6;
+      font-family: var(--font);
     }
 
     /* ─── Tuya Buttons ─── */
@@ -227,7 +209,10 @@
       box-shadow: 0 0 6px currentColor;
     }
     .status-dot.online { background: var(--accent2); }
-    #status-text { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+    #status-text {
+      font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em;
+      font-family: var(--font);
+    }
 
     #scripts-list {
       display: flex; flex-direction: column; gap: 9px;
@@ -256,6 +241,7 @@
     .script-btn:hover::after { opacity: 1; }
     .script-btn:active { transform: translateX(1px) scale(0.99); }
     .script-btn.fired { border-color: var(--accent2); box-shadow: 0 0 14px rgba(91,230,192,0.2); }
+    .script-btn.error { border-color: rgba(255,69,69,0.5); box-shadow: 0 0 14px rgba(255,69,69,0.15); }
 
     .btn-icon {
       width: 28px; height: 28px; border-radius: 8px;
@@ -273,8 +259,10 @@
     .no-server {
       font-size: 0.75rem; color: var(--muted); line-height: 1.6;
       padding: 12px 0; text-align: center;
+      font-family: var(--font);
     }
     .no-server strong { color: var(--accent); display: block; margin-bottom: 6px; }
+    .no-server code { color: var(--accent2); font-family: var(--font); font-size: 0.7rem; }
 
     /* ─── Bottom bar ─── */
     #bottom-bar {
@@ -285,6 +273,7 @@
     .bottom-tag {
       font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em;
       text-transform: uppercase; color: var(--muted); opacity: 0.5;
+      font-family: var(--font);
     }
     .bottom-tag.brand { color: var(--accent); opacity: 0.8; }
     .dot-sep { color: var(--muted); opacity: 0.3; font-size: 0.5rem; }
@@ -375,13 +364,6 @@
     <div id="clock-panel">
       <div id="time-display">00:00:00</div>
       <div id="date-display">Wednesday, 15 April</div>
-      <div id="analog">
-        <div class="clock-ring"></div>
-        <div class="hand" id="hourHand"></div>
-        <div class="hand" id="minuteHand"></div>
-        <div class="hand" id="secondHand"></div>
-        <div class="clock-center"></div>
-      </div>
     </div>
 
     <!-- ── TUYA SCRIPTS (right) ── -->
@@ -393,8 +375,8 @@
       </div>
       <div id="scripts-list">
         <div class="no-server">
-          <strong>Server not detected</strong>
-          Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
+          <strong>Runner not detected</strong>
+          Start <code>tuya_runner.py</code> to enable scene buttons.
         </div>
       </div>
     </div>
@@ -512,15 +494,6 @@
     const dateStr = `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
     document.getElementById('date-display').textContent = dateStr;
 
-    // Analog
-    const h12 = h % 12;
-    document.getElementById('hourHand').style.transform =
-      `rotate(${(h12 + m / 60) * 30}deg)`;
-    document.getElementById('minuteHand').style.transform =
-      `rotate(${(m + s / 60) * 6}deg)`;
-    document.getElementById('secondHand').style.transform =
-      `rotate(${s * 6}deg)`;
-
     // Bottom bar
     document.getElementById('bottom-time').textContent =
       `${pad(h)}:${pad(m)}`;
@@ -549,8 +522,7 @@
   })();
 
   /* ══════════════════════════════════════════
-     LISTS — localStorage (UpNote has no API)
-     Each edit is auto-saved.
+     LISTS — localStorage
   ══════════════════════════════════════════ */
   document.querySelectorAll('.list-box').forEach(box => {
     const key = box.dataset.key;
@@ -567,17 +539,14 @@
         e.preventDefault();
         document.execCommand('insertText', false, '\n• ');
       }
-      if (e.key === 'Backspace') {
-        const sel = window.getSelection();
-        if (sel && sel.focusOffset === 2) {
-          // keep the leading bullet on first line
-        }
-      }
     });
   });
 
   /* ══════════════════════════════════════════
-     TUYA SERVER
+     TUYA BAT RUNNER
+     Talks to tuya_runner.py (localhost:8765)
+     which directly runs .bat files from
+     C:\Scripts\Tuya Scenes\Bones
   ══════════════════════════════════════════ */
   const SERVER = 'http://localhost:8765';
   const dot    = document.getElementById('status-dot');
@@ -591,29 +560,41 @@
 
   function scriptIcon(name, idx) {
     const n = name.toLowerCase();
-    if (n.includes('off') || n.includes('sleep')) return '🌙';
+    if (n.includes('off') || n.includes('sleep') || n.includes('night')) return '🌙';
     if (n.includes('on')  || n.includes('wake'))  return '☀️';
-    if (n.includes('red'))   return '🔴';
-    if (n.includes('green')) return '🟢';
-    if (n.includes('blue'))  return '🔵';
-    if (n.includes('warm'))  return '🟡';
-    if (n.includes('cool'))  return '❄️';
-    if (n.includes('fire') || n.includes('flame')) return '🔥';
-    if (n.includes('night')) return '🌙';
+    if (n.includes('red'))    return '🔴';
+    if (n.includes('green'))  return '🟢';
+    if (n.includes('blue'))   return '🔵';
+    if (n.includes('warm'))   return '🟡';
+    if (n.includes('cool'))   return '❄️';
+    if (n.includes('fire') || n.includes('flame') || n.includes('inferno')) return '🔥';
     if (n.includes('bright') || n.includes('max')) return '🔆';
+    if (n.includes('nebula') || n.includes('purple')) return '🟣';
+    if (n.includes('toggle')) return '🔄';
     return ICONS[idx % ICONS.length];
+  }
+
+  function cleanLabel(filename) {
+    // Strip .bat extension, replace separators with spaces, trim
+    return filename
+      .replace(/\.bat$/i, '')
+      .replace(/[-_]/g, ' ')
+      .trim();
   }
 
   function buildScriptButtons(scripts) {
     sList.innerHTML = '';
     if (!scripts.length) {
-      sList.innerHTML = '<div class="no-server">No .py scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes</code></div>';
+      sList.innerHTML = `<div class="no-server">
+        <strong>No scenes found</strong>
+        Add <code>.bat</code> files to<br><code>C:\\Scripts\\Tuya Scenes\\Bones</code>
+      </div>`;
       return;
     }
     scripts.forEach((name, i) => {
       const btn = document.createElement('button');
       btn.className = 'script-btn';
-      const label = name.replace(/\.py$/i, '').replace(/[-_]/g, ' ');
+      const label = cleanLabel(name);
       btn.innerHTML = `
         <div class="btn-icon">${scriptIcon(name, i)}</div>
         <span class="btn-name">${label}</span>
@@ -626,16 +607,30 @@
   }
 
   function runScript(name, btn) {
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+
     fetch(`${SERVER}/run?script=${encodeURIComponent(name)}`)
       .then(r => r.json())
       .then(data => {
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
         if (data.ok) {
           btn.classList.add('fired');
-          setTimeout(() => btn.classList.remove('fired'), 1800);
+          btn.classList.remove('error');
+          setTimeout(() => btn.classList.remove('fired'), 2000);
           triggerFlash();
+        } else {
+          btn.classList.add('error');
+          setTimeout(() => btn.classList.remove('error'), 2000);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+        btn.classList.add('error');
+        setTimeout(() => btn.classList.remove('error'), 2000);
+      });
   }
 
   function triggerFlash() {
@@ -650,13 +645,16 @@
       const d = await r.json();
       if (d.alive) {
         dot.classList.add('online');
-        stxt.textContent = 'Bridge online';
+        stxt.textContent = 'Runner online';
         loadScripts();
       } else throw new Error();
     } catch {
       dot.classList.remove('online');
-      stxt.textContent = 'Server offline';
-      sList.innerHTML = `<div class="no-server"><strong>Bridge not running</strong>Start <code style="color:var(--accent2)">tuya_server.py</code> with pythonw.exe</div>`;
+      stxt.textContent = 'Runner offline';
+      sList.innerHTML = `<div class="no-server">
+        <strong>Runner not running</strong>
+        Start <code>tuya_runner.py</code><br>with <code>pythonw.exe</code>
+      </div>`;
     }
   }
 
@@ -668,7 +666,6 @@
     } catch {}
   }
 
-  // Check server on load and every 10s
   checkServer();
   setInterval(checkServer, 10000);
 
