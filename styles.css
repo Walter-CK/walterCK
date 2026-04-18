@@ -60,6 +60,12 @@ body.toolkit-page {
   background-image: none !important;
 }
 
+/* Featured Page Background Override — fixes iOS rubber-band overscroll revealing html bg */
+html:has(body.featured-page) {
+  background: #0a0d17;
+  background-image: none;
+}
+
 /* ─── Scrollbar ─── */
 html {
   scrollbar-width: none;
@@ -175,7 +181,10 @@ h2 {
 }
 
 /* Contact */
-.contact-section { text-align: left; }
+.contact-section {
+  text-align: left;
+  border-bottom: none;
+}
 .contact-section a {
   color: var(--accent);
   text-decoration: underline;
@@ -434,6 +443,7 @@ a.card-link { display: block; text-decoration: none; color: inherit; }
   border-left: 4px solid var(--accent);
   padding-left: 12px;
   text-shadow: 0 6px 30px rgba(91,230,192,0.15);
+  font-size: 1.2rem;
 }
 
 /* ─── Intro Animations ─── */
@@ -632,10 +642,12 @@ a.card-link { display: block; text-decoration: none; color: inherit; }
   background-clip: text;
   color: transparent;
   animation: featured-fire-sweep 2.4s linear infinite;
+  animation-delay: -1.2s;
   text-shadow: none;
   opacity: 1;
   border-left: 4px solid #ff4500;
   padding-left: 12px;
+  font-size: 1.2rem;
 }
 
 /* ─── Featured cards — use the item's own color via CSS vars ─── */
