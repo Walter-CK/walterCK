@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>WalterCK · Desktop</title>
+  <title>CK - Desktop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="alternate icon" href="images/favicons/favicon.ico" type="image/x-icon">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
   <style>
     /* ─── Tokens — matches walterck.com ─── */
     :root {
@@ -335,6 +339,56 @@
       mask-image: radial-gradient(ellipse 75% 70% at 60% 25%, black 40%, rgba(0, 0, 0, 0.5) 62%, transparent 85%)
     }
 
+    /* ─── Back Button ─── */
+    .back-btn {
+      position: absolute; /* Floats over the grid */
+      top: 28px;
+      left: 28px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 50px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--glass);
+      border: 1px solid var(--border); /* Updated to match your :root */
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    
+    .back-btn svg {
+      width: 20px; 
+      height: 20px; 
+      transition: transform 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--glow); /* Updated to match your :root */
+      transform: translateY(-2px); /* Matches your Tuya buttons */
+    }
+
+    .back-btn:hover svg {
+      transform: translateX(-2px);
+    }
+
+    .back-btn:active {
+      transform: translateY(-1px) scale(0.95);
+    }
+    
+    @media (max-width: 1200px) {
+      .back-btn { top: 20px; left: 20px; }
+    }
+    @media (max-width: 600px) {
+      .back-btn { width: 56px; height: 58px; border-radius: 14px; top: 16px; left: 16px; }
+    }
+
     /* ─── Responsive ─── */
     @media (max-width: 1200px) {
       #app { grid-template-columns: 260px 1fr 240px; padding: 20px; gap: 16px; }
@@ -367,6 +421,11 @@
 
   <!-- App -->
   <div id="app">
+    <a href="#" class="back-btn" aria-label="Go Back">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </a>
 
     <!-- ── LISTS (left) ── -->
     <div id="lists-panel" class="panel">
@@ -430,9 +489,23 @@
   </div>
 
   <script>
-  /* ══════════════════════════════════════════
-     RAIN
-  ══════════════════════════════════════════ */
+
+  /* BACK BUTTON LOGIC */
+  (function() {
+    const backBtn = document.querySelector('.back-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', (e) => {
+        sessionStorage.setItem('walterck_toolkit_back', '1');
+        // If the href is just "#", this will trigger the browser back
+        if (backBtn.getAttribute('href') === '#') {
+          e.preventDefault();
+          window.history.back();
+        }
+      });
+    }
+  })();
+    
+  /* RAIN */
   (function () {
     const rain = document.getElementById('rain');
     for (let i = 0; i < 120; i++) {
