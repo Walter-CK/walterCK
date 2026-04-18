@@ -6,19 +6,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ─── Tokens ─── */
+    /* ─── Tokens — matches walterck.com ─── */
     :root {
       --bg:        #05070a;
-      --bg2:       #0c1020;
+      --bg2:       #0f1419;
       --accent:    #6b8cff;
       --accent2:   #5be6c0;
-      --glow:      rgba(107,140,255,0.22);
+      --glow:      rgba(107,140,255,0.25);
       --glow2:     rgba(91,230,192,0.18);
       --text:      #e6eef6;
-      --muted:     #4a5a72;
-      --glass:     rgba(255,255,255,0.035);
-      --border:    rgba(255,255,255,0.07);
-      --radius:    14px;
+      --muted:     #94a3b8;
+      --glass:     rgba(255,255,255,0.03);
+      --border:    rgba(255,255,255,0.08);
+      --radius:    16px;
+      --shadow:    0 12px 40px rgba(0,0,0,0.6);
+      --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
       --font:      'Oxanium', sans-serif;
     }
 
@@ -30,6 +32,7 @@
       background: var(--bg);
       color: var(--text);
       user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ─── Background layers ─── */
@@ -42,17 +45,17 @@
     .glow-orb.a {
       width: 600px; height: 600px;
       top: -150px; left: -100px;
-      background: radial-gradient(circle, rgba(107,140,255,0.12) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(107,140,255,0.10) 0%, transparent 70%);
     }
     .glow-orb.b {
       width: 500px; height: 500px;
       bottom: -100px; right: -80px;
-      background: radial-gradient(circle, rgba(91,230,192,0.10) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(91,230,192,0.08) 0%, transparent 70%);
     }
     .glow-orb.c {
       width: 300px; height: 300px;
       top: 40%; left: 50%; transform: translate(-50%,-50%);
-      background: radial-gradient(circle, rgba(107,140,255,0.06) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(107,140,255,0.05) 0%, transparent 70%);
     }
 
     /* Grid overlay */
@@ -69,7 +72,7 @@
     .drop {
       position: absolute; top: -40px;
       width: 1px; height: 32px;
-      background: linear-gradient(to bottom, transparent, rgba(107,140,255,0.35));
+      background: linear-gradient(to bottom, transparent, rgba(107,140,255,0.3));
       animation: fall linear infinite;
       border-radius: 1px;
     }
@@ -82,7 +85,7 @@
       position: fixed; inset: 0; z-index: 2; pointer-events: none;
       background: repeating-linear-gradient(
         0deg, transparent, transparent 2px,
-        rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+        rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
       );
     }
 
@@ -92,39 +95,42 @@
       width: 100vw; height: 100vh;
       display: grid;
       grid-template-columns: 300px 1fr 280px;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: 1fr;
       gap: 20px;
       padding: 28px;
       pointer-events: none;
     }
     #app > * { pointer-events: all; }
 
-    /* ─── Panel base ─── */
+    /* ─── Panel base — matches walterck.com .card ─── */
     .panel {
-      background: var(--glass);
+      background: rgba(255,255,255,0.02);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      padding: 18px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px;
       position: relative;
       overflow: hidden;
+      transition: var(--transition);
     }
     .panel::before {
       content: '';
       position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(107,140,255,0.04) 0%, transparent 60%);
+      background: linear-gradient(135deg, rgba(107,140,255,0.03) 0%, transparent 60%);
       pointer-events: none;
+      border-radius: var(--radius);
     }
     .panel-title {
-      font-size: 0.62rem; font-weight: 700;
-      letter-spacing: 0.15em; text-transform: uppercase;
-      color: var(--muted); margin-bottom: 14px;
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 7px;
     }
 
-    /* ─── Clock ─── */
+    /* ─── Clock — spans full height, centred ─── */
     #clock-panel {
-      grid-column: 2; grid-row: 1;
+      grid-column: 2;
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; padding: 22px 28px;
       background: transparent; border: none;
@@ -133,129 +139,165 @@
     #clock-panel::before { display: none; }
 
     #time-display {
-      font-size: clamp(3.5rem, 6vw, 6rem);
+      font-size: clamp(4rem, 7vw, 7rem);
       font-weight: 800; letter-spacing: -0.04em;
-      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 60%);
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 65%);
       -webkit-background-clip: text; background-clip: text; color: transparent;
       line-height: 1;
-      filter: drop-shadow(0 0 30px rgba(107,140,255,0.4));
+      filter: drop-shadow(0 0 40px rgba(107,140,255,0.45));
     }
     #date-display {
-      font-size: 0.95rem; font-weight: 400; color: var(--muted);
-      letter-spacing: 0.05em; margin-top: 8px;
+      font-size: 0.92rem; font-weight: 400; color: var(--muted);
+      letter-spacing: 0.08em; margin-top: 10px;
       text-transform: uppercase;
     }
 
-
-
     /* ─── Lists ─── */
     #lists-panel {
-      grid-column: 1; grid-row: 1 / 3;
-      display: flex; flex-direction: column; gap: 14px;
-      overflow-y: auto; overflow-x: hidden;
-      scrollbar-width: none;
+      grid-column: 1;
+      display: flex; flex-direction: column; gap: 10px;
+      overflow: hidden;
     }
-    #lists-panel::-webkit-scrollbar { display: none; }
 
-    .list-block { flex-shrink: 0; }
+    .list-block {
+      flex: 1;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
     .list-label {
-      font-size: 0.6rem; font-weight: 700;
+      font-size: 0.58rem; font-weight: 700;
       letter-spacing: 0.16em; text-transform: uppercase;
-      color: var(--muted); margin-bottom: 8px; padding-left: 2px;
+      color: var(--muted); margin-bottom: 6px; padding-left: 2px;
+      flex-shrink: 0;
     }
     .list-box {
-      background: var(--glass);
+      flex: 1;
+      background: rgba(255,255,255,0.025);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px 14px;
-      min-height: 80px;
+      padding: 10px 12px;
       font-family: var(--font);
-      font-size: 0.85rem; line-height: 1.7;
+      font-size: 0.82rem; line-height: 1.65;
       color: var(--text);
-      outline: none; resize: none;
+      outline: none;
+      overflow-y: auto;
+      overflow-x: hidden;
       white-space: pre-wrap; word-break: break-word;
       transition: border-color 0.2s, box-shadow 0.2s;
+      user-select: text;
+      scrollbar-width: none;
+      min-height: 0;
     }
+    .list-box::-webkit-scrollbar { display: none; }
     .list-box:focus {
-      border-color: rgba(107,140,255,0.45);
-      box-shadow: 0 0 0 2px rgba(107,140,255,0.08), 0 0 20px rgba(107,140,255,0.06);
+      border-color: rgba(107,140,255,0.4);
+      box-shadow: 0 0 0 2px rgba(107,140,255,0.07), 0 0 18px rgba(107,140,255,0.05);
+      background: rgba(255,255,255,0.035);
     }
-    .list-sync-note {
-      font-size: 0.55rem; color: var(--muted);
-      text-align: right; margin-top: 4px;
-      letter-spacing: 0.05em; opacity: 0.6;
+    /* Hover scroll zones */
+    #scroll-zone-top, #scroll-zone-bottom {
+      position: absolute; left: 0; right: 0; height: 48px;
+      z-index: 20; pointer-events: all;
     }
+    #scroll-zone-top    { top: 0; }
+    #scroll-zone-bottom { bottom: 0; }
+    #scroll-zone-top.hidden, #scroll-zone-bottom.hidden { pointer-events: none; }
 
-    /* ─── Tuya Buttons ─── */
+    /* ─── Smart Devices panel ─── */
     #tuya-panel {
-      grid-column: 3; grid-row: 1 / 3;
+      grid-column: 3;
       display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    #tuya-wrapper {
+      flex: 1; min-height: 0;
+      position: relative;
+    }
+    #tuya-content {
+      height: 100%;
       overflow-y: auto; overflow-x: hidden;
       scrollbar-width: none;
+      padding-top: 3px;
     }
-    #tuya-panel::-webkit-scrollbar { display: none; }
+    #tuya-content::-webkit-scrollbar { display: none; }
 
     #server-status {
       display: flex; align-items: center; gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 16px; flex-shrink: 0;
     }
     .status-dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: #ff4545; flex-shrink: 0;
       transition: background 0.3s;
-      box-shadow: 0 0 6px currentColor;
+      box-shadow: 0 0 8px rgba(255,69,69,0.6);
     }
-    .status-dot.online { background: var(--accent2); }
+    .status-dot.online {
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(91,230,192,0.6);
+    }
     #status-text { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
 
     #scripts-list {
-      display: flex; flex-direction: column; gap: 9px;
-      flex: 1;
+      display: flex; flex-direction: column; gap: 8px;
     }
 
+    /* Script buttons — match walterck.com card hover style */
+    .script-btn, .script-btn * {
+      cursor: pointer;
+    }
     .script-btn {
       display: flex; align-items: center; gap: 11px;
       padding: 11px 14px;
-      background: var(--glass);
+      background: rgba(255,255,255,0.02);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       color: var(--text); font-family: var(--font);
       font-size: 0.8rem; font-weight: 600;
       cursor: pointer; text-align: left;
-      transition: all 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       letter-spacing: 0.02em;
       position: relative; overflow: hidden;
     }
     .script-btn::after {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(90deg, rgba(107,140,255,0) 0%, rgba(107,140,255,0.08) 100%);
-      opacity: 0; transition: opacity 0.2s;
+      background: linear-gradient(90deg, rgba(107,140,255,0) 0%, rgba(107,140,255,0.06) 100%);
+      opacity: 0; transition: opacity 0.3s;
     }
-    .script-btn:hover { border-color: rgba(107,140,255,0.4); transform: translateX(3px); }
+    .script-btn:hover {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.05);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
     .script-btn:hover::after { opacity: 1; }
-    .script-btn:active { transform: translateX(1px) scale(0.99); }
-    .script-btn.fired { border-color: var(--accent2); box-shadow: 0 0 14px rgba(91,230,192,0.2); }
+    .script-btn:active { transform: translateY(-1px) scale(0.99); }
+    .script-btn.fired {
+      border-color: #22c55e;
+      background: rgba(34,197,94,0.12);
+      box-shadow: 0 0 18px rgba(34,197,94,0.3);
+    }
 
     .btn-icon {
       width: 28px; height: 28px; border-radius: 8px;
-      background: rgba(107,140,255,0.12);
-      border: 1px solid rgba(107,140,255,0.2);
+      background: rgba(107,140,255,0.1);
+      border: 1px solid rgba(107,140,255,0.18);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; font-size: 0.85rem;
       transition: background 0.2s;
     }
-    .script-btn:hover .btn-icon { background: rgba(107,140,255,0.22); }
+    .script-btn:hover .btn-icon {
+      background: rgba(107,140,255,0.2);
+      border-color: rgba(107,140,255,0.35);
+    }
     .btn-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .btn-arrow { font-size: 0.65rem; color: var(--muted); opacity: 0; transition: opacity 0.2s; }
+    .btn-arrow { font-size: 0.6rem; color: var(--muted); opacity: 0; transition: opacity 0.2s; }
     .script-btn:hover .btn-arrow { opacity: 1; }
 
     .no-server {
-      font-size: 0.75rem; color: var(--muted); line-height: 1.6;
-      padding: 12px 0; text-align: center;
+      font-size: 0.75rem; color: var(--muted); line-height: 1.65;
+      padding: 14px 0; text-align: center;
     }
-    .no-server strong { color: var(--accent); display: block; margin-bottom: 6px; }
-
-
+    .no-server strong { color: var(--accent); display: block; margin-bottom: 8px; font-size: 0.8rem; }
 
     /* ─── Particles ─── */
     .particle {
@@ -269,26 +311,27 @@
       100% { transform: translateY(-100vh) scale(0); opacity: 0; }
     }
 
-    /* ─── Responsive tweaks ─── */
+    /* ─── Lightning flash ─── */
+    #flash {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(107,140,255,0.05);
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.05s;
+    }
+
+    /* ─── Responsive ─── */
     @media (max-width: 1200px) {
       #app { grid-template-columns: 260px 1fr 240px; padding: 20px; gap: 16px; }
     }
     @media (max-width: 900px) {
       #app {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto 1fr;
+        overflow-y: auto;
       }
-      #clock-panel { grid-column: 1 / 3; }
+      #clock-panel { grid-column: 1 / 3; grid-row: 1; height: auto; min-height: 120px; }
       #lists-panel { grid-column: 1; grid-row: 2; }
       #tuya-panel  { grid-column: 2; grid-row: 2; }
-    }
-
-    /* ─── Lightning flash ─── */
-    #flash {
-      position: fixed; inset: 0; z-index: 50;
-      background: rgba(107,140,255,0.06);
-      pointer-events: none; opacity: 0;
-      transition: opacity 0.05s;
     }
   </style>
 </head>
@@ -313,50 +356,55 @@
 
       <div class="list-block">
         <div class="list-label">To Do</div>
-        <div class="list-box" id="lb-todo" data-key="wck_todo" contenteditable="true" spellcheck="false">• </div>
+        <div class="list-box" id="lb-todo" data-key="wck_todo" contenteditable="true" spellcheck="false"></div>
       </div>
 
       <div class="list-block">
         <div class="list-label">Homework</div>
-        <div class="list-box" id="lb-homework" data-key="wck_homework" contenteditable="true" spellcheck="false">• </div>
+        <div class="list-box" id="lb-homework" data-key="wck_homework" contenteditable="true" spellcheck="false"></div>
       </div>
 
       <div class="list-block">
         <div class="list-label">Assessments</div>
-        <div class="list-box" id="lb-assessments" data-key="wck_assessments" contenteditable="true" spellcheck="false">• </div>
+        <div class="list-box" id="lb-assessments" data-key="wck_assessments" contenteditable="true" spellcheck="false"></div>
       </div>
 
       <div class="list-block">
         <div class="list-label">Goals</div>
-        <div class="list-box" id="lb-goals" data-key="wck_goals" contenteditable="true" spellcheck="false">• </div>
+        <div class="list-box" id="lb-goals" data-key="wck_goals" contenteditable="true" spellcheck="false"></div>
       </div>
 
       <div class="list-block">
         <div class="list-label">Projects</div>
-        <div class="list-box" id="lb-projects" data-key="wck_projects" contenteditable="true" spellcheck="false">• </div>
+        <div class="list-box" id="lb-projects" data-key="wck_projects" contenteditable="true" spellcheck="false"></div>
       </div>
 
-      <div class="list-sync-note">↑ saved locally · walterck.com</div>
+      <div class="list-sync-note" style="display:none;"></div>
     </div>
 
-    <!-- ── CLOCK (center top) ── -->
+    <!-- ── CLOCK (centre, spans full height) ── -->
     <div id="clock-panel">
       <div id="time-display">00:00:00</div>
-      <div id="date-display">Wednesday, 15 April</div>
-
+      <div id="date-display">Thursday, 16 April</div>
     </div>
 
-    <!-- ── TUYA SCRIPTS (right) ── -->
+    <!-- ── SMART DEVICES (right) ── -->
     <div id="tuya-panel" class="panel">
-      <div class="panel-title">⚡ Tuya Scenes</div>
+      <div class="panel-title">⚡ Smart Devices</div>
       <div id="server-status">
         <div class="status-dot" id="status-dot"></div>
         <span id="status-text">Connecting…</span>
       </div>
-      <div id="scripts-list">
-        <div class="no-server">
-          <strong>Server not detected</strong>
-          Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
+      <div id="tuya-wrapper">
+        <div id="scroll-zone-top"></div>
+        <div id="scroll-zone-bottom"></div>
+        <div id="tuya-content">
+          <div id="scripts-list">
+            <div class="no-server">
+              <strong>Server not detected</strong>
+              Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -369,14 +417,14 @@
   ══════════════════════════════════════════ */
   (function () {
     const rain = document.getElementById('rain');
-    for (let i = 0; i < 130; i++) {
+    for (let i = 0; i < 120; i++) {
       const d = document.createElement('div');
       d.className = 'drop';
       d.style.left = Math.random() * 100 + 'vw';
       const dur = (Math.random() * 2.5 + 1.8).toFixed(2);
       d.style.animationDuration = dur + 's';
       d.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
-      d.style.opacity = (Math.random() * 0.5 + 0.05).toFixed(2);
+      d.style.opacity = (Math.random() * 0.45 + 0.04).toFixed(2);
       d.style.height = (Math.random() * 22 + 14) + 'px';
       rain.appendChild(d);
     }
@@ -386,11 +434,11 @@
      FLOATING PARTICLES
   ══════════════════════════════════════════ */
   (function () {
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 20; i++) {
       const p = document.createElement('div');
       p.className = 'particle';
       const size = Math.random() * 2.5 + 0.5;
-      const op   = (Math.random() * 0.15 + 0.03).toFixed(3);
+      const op   = (Math.random() * 0.12 + 0.02).toFixed(3);
       p.style.cssText = `
         left: ${Math.random() * 100}%;
         bottom: -10px;
@@ -423,7 +471,7 @@
       amp:   60 + i * 20,
       speed: 0.0004 + i * 0.00015,
       y:     0.2 + i * 0.15,
-      alpha: 0.018 + i * 0.006,
+      alpha: 0.015 + i * 0.005,
     }));
 
     function draw() {
@@ -455,14 +503,10 @@
 
   function updateClock() {
     const now = new Date();
-    const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-
     document.getElementById('time-display').textContent =
-      `${pad(h)}:${pad(m)}:${pad(s)}`;
-
-    const dateStr = `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
-    document.getElementById('date-display').textContent = dateStr;
-
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById('date-display').textContent =
+      `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
   }
 
   setInterval(updateClock, 1000);
@@ -478,7 +522,8 @@
       flash.style.opacity = '1';
       setTimeout(() => {
         flash.style.opacity = '0';
-        setTimeout(() => { flash.style.opacity = '1';
+        setTimeout(() => {
+          flash.style.opacity = '1';
           setTimeout(() => { flash.style.opacity = '0'; lightningLoop(); }, 80);
         }, 120);
       }, 60);
@@ -486,59 +531,61 @@
   })();
 
   /* ══════════════════════════════════════════
-     LISTS — localStorage (UpNote has no API)
-     Each edit is auto-saved.
+     LISTS — localStorage, no bullet nonsense
   ══════════════════════════════════════════ */
   document.querySelectorAll('.list-box').forEach(box => {
-    const key = box.dataset.key;
+    const key   = box.dataset.key;
     const saved = localStorage.getItem(key);
-    if (saved) box.innerText = saved;
-    else        box.innerText = '• ';
+    if (saved !== null) box.innerText = saved;
 
     box.addEventListener('input', () => {
       localStorage.setItem(key, box.innerText);
     });
-
-    box.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.execCommand('insertText', false, '\n• ');
-      }
-      if (e.key === 'Backspace') {
-        const sel = window.getSelection();
-        if (sel && sel.focusOffset === 2) {
-          // keep the leading bullet on first line
-        }
-      }
-    });
   });
 
   /* ══════════════════════════════════════════
-     TUYA SERVER
+     SMART DEVICES / TUYA SERVER
   ══════════════════════════════════════════ */
   const SERVER = 'http://localhost:8765';
   const dot    = document.getElementById('status-dot');
   const stxt   = document.getElementById('status-text');
   const sList  = document.getElementById('scripts-list');
 
-  const ICONS = [
-    '💡','🌙','☀️','🔴','🟢','🔵','🟡','🟣','🟠','⚡',
-    '🌈','🔆','🌟','❄️','🔥','🌊','🌿','🎨','🎛️','🏠'
+  // Custom device order — matched against .bat filenames (case-insensitive, partial)
+  const DEVICE_ORDER = [
+    'lights on', 'lights off', 'lights min', 'lights max',
+    'inferno', 'ember', 'viridian', 'cerulean', 'nebula',
+    'phone on', 'phone off',
+    'powerhouse on', 'powerhouse off',
+    'laptop on', 'laptop off',
+    'toothbrush on', 'toothbrush off',
+    'powerboard bootup', 'powerboard shutdown'
   ];
 
-  function scriptIcon(name, idx) {
-    const n = name.toLowerCase();
-    if (n.includes('off') || n.includes('sleep')) return '🌙';
-    if (n.includes('on')  || n.includes('wake'))  return '☀️';
-    if (n.includes('red'))   return '🔴';
-    if (n.includes('green')) return '🟢';
-    if (n.includes('blue'))  return '🔵';
-    if (n.includes('warm'))  return '🟡';
-    if (n.includes('cool'))  return '❄️';
-    if (n.includes('fire') || n.includes('flame')) return '🔥';
-    if (n.includes('night')) return '🌙';
-    if (n.includes('bright') || n.includes('max')) return '🔆';
-    return ICONS[idx % ICONS.length];
+  function sortScripts(scripts) {
+    return [...scripts].sort((a, b) => {
+      const labelA = a.replace(/\.bat$/i, '').replace(/[-_]/g, ' ').toLowerCase();
+      const labelB = b.replace(/\.bat$/i, '').replace(/[-_]/g, ' ').toLowerCase();
+      const iA = DEVICE_ORDER.findIndex(o => labelA.includes(o));
+      const iB = DEVICE_ORDER.findIndex(o => labelB.includes(o));
+      if (iA === -1 && iB === -1) return labelA.localeCompare(labelB);
+      if (iA === -1) return 1;
+      if (iB === -1) return -1;
+      return iA - iB;
+    });
+  }
+
+  // 💡 for anything light/ambience-related; 🛡️ for everything else
+  function scriptIcon(name) {
+    const n = name.toLowerCase().replace(/[-_.]/g, ' ').replace(/\.bat$/i, '');
+    const lightWords = [
+      'light', 'lights', 'lamp', 'bulb',
+      'ember', 'inferno', 'nebula', 'viridian', 'cerulean',
+      'glow', 'bright', 'dim', 'warm', 'cool', 'white',
+      'colour', 'color', 'hue', 'kelvin', 'lumen'
+    ];
+    if (lightWords.some(w => n.includes(w))) return '💡';
+    return '🛡️';
   }
 
   function buildScriptButtons(scripts) {
@@ -547,32 +594,33 @@
       sList.innerHTML = '<div class="no-server">No .bat scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes\\Bones</code></div>';
       return;
     }
-    scripts.forEach((name, i) => {
+    sortScripts(scripts).forEach(name => {
       const btn = document.createElement('button');
       btn.className = 'script-btn';
       const label = name.replace(/\.bat$/i, '').replace(/[-_]/g, ' ');
       btn.innerHTML = `
-        <div class="btn-icon">${scriptIcon(name, i)}</div>
+        <div class="btn-icon">${scriptIcon(name)}</div>
         <span class="btn-name">${label}</span>
         <span class="btn-arrow">▶</span>
       `;
-      btn.title = name;
       btn.addEventListener('click', () => runScript(name, btn));
       sList.appendChild(btn);
     });
   }
 
   function runScript(name, btn) {
+    btn.classList.add('fired');
     fetch(`${SERVER}/run?script=${encodeURIComponent(name)}`)
       .then(r => r.json())
       .then(data => {
         if (data.ok) {
-          btn.classList.add('fired');
-          setTimeout(() => btn.classList.remove('fired'), 1800);
           triggerFlash();
+          setTimeout(() => btn.classList.remove('fired'), 1800);
+        } else {
+          btn.classList.remove('fired');
         }
       })
-      .catch(() => {});
+      .catch(() => btn.classList.remove('fired'));
   }
 
   function triggerFlash() {
@@ -582,20 +630,21 @@
   }
 
   async function checkServer() {
-    try {
-      const r = await fetch(`${SERVER}/ping`, { signal: AbortSignal.timeout(1500) });
-      const d = await r.json();
-      if (d.alive) {
-        dot.classList.add('online');
-        stxt.textContent = 'Bridge online';
-        loadScripts();
-      } else throw new Error();
-    } catch {
-      dot.classList.remove('online');
-      stxt.textContent = 'Server offline';
-      sList.innerHTML = `<div class="no-server"><strong>Bridge not running</strong>Start <code style="color:var(--accent2)">tuya_server.py</code> with pythonw.exe</div>`;
-    }
-  }
+   try {
+     // Increased timeout to 4 seconds for better stability
+     const r = await fetch(`${SERVER}/ping`, { signal: AbortSignal.timeout(4000) });
+     const d = await r.json();
+     if (d.alive) {
+       dot.classList.add('online');
+       stxt.textContent = 'Bridge online';
+       // Only reload the list if it's currently empty
+       if (sList.children.length < 2) loadScripts(); 
+     }
+   } catch {
+     dot.classList.remove('online');
+     stxt.textContent = 'Connecting...'; // Less aggressive than "OFFLINE"
+   }
+ }
 
   async function loadScripts() {
     try {
@@ -605,10 +654,45 @@
     } catch {}
   }
 
-  // Check server on load and every 10s
   checkServer();
   setInterval(checkServer, 10000);
 
-</script>
+  /* ══════════════════════════════════════════
+     HOVER-TO-SCROLL
+  ══════════════════════════════════════════ */
+  (function () {
+    const content = document.getElementById('tuya-content');
+    const zTop    = document.getElementById('scroll-zone-top');
+    const zBot    = document.getElementById('scroll-zone-bottom');
+    const SPEED   = 12;
+    let rafId     = null;
+    let dir       = 0;
+
+    function updateZones() {
+      zTop.classList.toggle('hidden', content.scrollTop <= 0);
+      zBot.classList.toggle('hidden', content.scrollTop + content.clientHeight >= content.scrollHeight - 1);
+    }
+
+    function tick() {
+      content.scrollTop += dir * SPEED;
+      updateZones();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function start(d) { dir = d; if (!rafId) rafId = requestAnimationFrame(tick); }
+    function stop()   { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+
+    zTop.addEventListener('mouseenter', () => start(-1));
+    zTop.addEventListener('mouseleave', stop);
+    zBot.addEventListener('mouseenter', () => start(1));
+    zBot.addEventListener('mouseleave', stop);
+    content.addEventListener('scroll', updateZones);
+
+    const obs = new MutationObserver(updateZones);
+    obs.observe(content, { childList: true, subtree: true });
+    updateZones();
+  })();
+
+  </script>
 </body>
 </html>
