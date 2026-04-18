@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>CK - Desktop</title>
+  <title>WalterCK · Desktop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -89,42 +89,6 @@
       );
     }
 
-    /* ─── Back Button ─── */
-    #back-btn {
-      position: fixed;
-      top: 18px;
-      left: 18px;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: var(--muted);
-      text-decoration: none;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      transition: all 0.2s;
-      cursor: pointer;
-    }
-    #back-btn:hover {
-      background: rgba(107,140,255,0.15);
-      border-color: var(--accent);
-      color: var(--accent);
-      box-shadow: 0 0 16px rgba(107,140,255,0.25);
-    }
-    #back-btn svg {
-      width: 18px; height: 18px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
     /* ─── Layout ─── */
     #app {
       position: relative; z-index: 10;
@@ -168,7 +132,7 @@
     #clock-panel {
       grid-column: 2;
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 22px 28px;
+      justify-content: flex-start; padding: 14vh 28px 22px;
       background: transparent; border: none;
       backdrop-filter: none;
     }
@@ -355,6 +319,22 @@
       transition: opacity 0.05s;
     }
 
+    /* ─── Cat photo ─── */
+    #photo-bg {
+      position: fixed;
+      bottom: -160px;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 80vh;
+      width: auto;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.5;
+      mix-blend-mode: screen;
+      -webkit-mask-image: radial-gradient(ellipse 80% 72% at 57% 58%, black 45%, rgba(0,0,0,0.5) 65%, transparent 90%);
+      mask-image: radial-gradient(ellipse 75% 70% at 60% 25%, black 40%, rgba(0, 0, 0, 0.5) 62%, transparent 85%)
+    }
+
     /* ─── Responsive ─── */
     @media (max-width: 1200px) {
       #app { grid-template-columns: 260px 1fr 240px; padding: 20px; gap: 16px; }
@@ -383,12 +363,7 @@
   <div class="scanline"></div>
   <div id="flash"></div>
 
-  <!-- Back Button -->
-  <a href="/" id="back-btn" title="Back to home">
-    <svg viewBox="0 0 24 24">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  </a>
+  <img id="photo-bg" src="cat.png" alt="">
 
   <!-- App -->
   <div id="app">
@@ -431,9 +406,9 @@
       <div id="date-display">Thursday, 16 April</div>
     </div>
 
-    <!-- ── SMART DEVICES (right) ── -->
+    <!-- ── LIGHTING & SMART DEVICES (right) ── -->
     <div id="tuya-panel" class="panel">
-      <div class="panel-title">⚡ Smart Devices</div>
+      <div class="panel-title">⚡ Lighting &amp; Smart Devices</div>
       <div id="server-status">
         <div class="status-dot" id="status-dot"></div>
         <span id="status-text">Connecting…</span>
@@ -445,7 +420,7 @@
           <div id="scripts-list">
             <div class="no-server">
               <strong>Server not detected</strong>
-              Run <code style="color:var(--accent2)">tuya_server.py</code> to enable scene buttons.
+              Run <code style="color:var(--accent2)">server.py</code> to enable scene buttons.
             </div>
           </div>
         </div>
@@ -574,17 +549,61 @@
   })();
 
   /* ══════════════════════════════════════════
-     LISTS — localStorage, no bullet nonsense
+     LISTS — iCloud file sync via tuya server
   ══════════════════════════════════════════ */
-  document.querySelectorAll('.list-box').forEach(box => {
-    const key   = box.dataset.key;
-    const saved = localStorage.getItem(key);
-    if (saved !== null) box.innerText = saved;
+  (function () {
+    const NOTES_URL = 'http://localhost:8765/notes';
 
-    box.addEventListener('input', () => {
-      localStorage.setItem(key, box.innerText);
+    // Build label→box map from DOM
+    const boxes = [];
+    document.querySelectorAll('.list-block').forEach(block => {
+      const label = block.querySelector('.list-label')?.textContent?.trim();
+      const box   = block.querySelector('.list-box');
+      if (label && box) boxes.push({ label, box });
     });
-  });
+
+    // Load all notes from server; skip boxes that are focused (user is typing)
+    async function loadNotes() {
+      try {
+        const r    = await fetch(NOTES_URL);
+        const data = await r.json();
+        boxes.forEach(({ label, box }) => {
+          if (document.activeElement === box) return; // don't clobber while typing
+          const incoming = data[label] ?? '';
+          if (incoming !== box.innerText) box.innerText = incoming;
+        });
+      } catch {}
+    }
+
+    // Save a single note to server → writes Label.txt in Notes Sync folder
+    async function saveNote(label, content) {
+      try {
+        await fetch(`${NOTES_URL}/${encodeURIComponent(label)}`, {
+          method: 'POST',
+          body: content
+        });
+      } catch {}
+    }
+
+    // Write on every keystroke
+    boxes.forEach(({ label, box }) => {
+      box.addEventListener('input', () => saveNote(label, box.innerText));
+    });
+
+    // Debounced sync triggered by any user activity
+    let syncTimer = null;
+    function scheduleSync() {
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(loadNotes, 600);
+    }
+    ['mousemove', 'click', 'keydown', 'touchstart'].forEach(e =>
+      document.addEventListener(e, scheduleSync, { passive: true })
+    );
+
+    // Initial load + idle poll every 10 s
+    loadNotes();
+    setInterval(loadNotes, 10000);
+  })();
 
   /* ══════════════════════════════════════════
      SMART DEVICES / TUYA SERVER
@@ -594,8 +613,9 @@
   const stxt   = document.getElementById('status-text');
   const sList  = document.getElementById('scripts-list');
 
-  // Custom device order — matched against .bat filenames (case-insensitive, partial)
+  // Custom device order — matched against script filenames (case-insensitive, partial)
   const DEVICE_ORDER = [
+    'filters on', 'filters off', 'brightness',
     'lights on', 'lights off', 'lights min', 'lights max',
     'inferno', 'ember', 'viridian', 'cerulean', 'nebula',
     'phone on', 'phone off',
@@ -607,8 +627,8 @@
 
   function sortScripts(scripts) {
     return [...scripts].sort((a, b) => {
-      const labelA = a.replace(/\.bat$/i, '').replace(/[-_]/g, ' ').toLowerCase();
-      const labelB = b.replace(/\.bat$/i, '').replace(/[-_]/g, ' ').toLowerCase();
+      const labelA = a.replace(/\.(bat|lnk|vbs)$/i, '').replace(/[-_]/g, ' ').toLowerCase();
+      const labelB = b.replace(/\.(bat|lnk|vbs)$/i, '').replace(/[-_]/g, ' ').toLowerCase();
       const iA = DEVICE_ORDER.findIndex(o => labelA.includes(o));
       const iB = DEVICE_ORDER.findIndex(o => labelB.includes(o));
       if (iA === -1 && iB === -1) return labelA.localeCompare(labelB);
@@ -620,12 +640,12 @@
 
   // 💡 for anything light/ambience-related; 🛡️ for everything else
   function scriptIcon(name) {
-    const n = name.toLowerCase().replace(/[-_.]/g, ' ').replace(/\.bat$/i, '');
+    const n = name.toLowerCase().replace(/[-_.]/g, ' ').replace(/\.(bat|lnk|vbs)$/i, '');
     const lightWords = [
       'light', 'lights', 'lamp', 'bulb',
       'ember', 'inferno', 'nebula', 'viridian', 'cerulean',
-      'glow', 'bright', 'dim', 'warm', 'cool', 'white',
-      'colour', 'color', 'hue', 'kelvin', 'lumen'
+      'glow', 'bright', 'brightness', 'dim', 'warm', 'cool', 'white',
+      'colour', 'color', 'filter', 'filters', 'hue', 'kelvin', 'lumen'
     ];
     if (lightWords.some(w => n.includes(w))) return '💡';
     return '🛡️';
@@ -634,13 +654,13 @@
   function buildScriptButtons(scripts) {
     sList.innerHTML = '';
     if (!scripts.length) {
-      sList.innerHTML = '<div class="no-server">No .bat scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes\\Bones</code></div>';
+      sList.innerHTML = '<div class="no-server">No scripts found in<br><code style="color:var(--accent2)">C:\\Scripts\\Tuya Scenes\\Bones</code></div>';
       return;
     }
     sortScripts(scripts).forEach(name => {
       const btn = document.createElement('button');
       btn.className = 'script-btn';
-      const label = name.replace(/\.bat$/i, '').replace(/[-_]/g, ' ');
+      const label = name.replace(/\.(bat|lnk|vbs)$/i, '').replace(/[-_]/g, ' ');
       btn.innerHTML = `
         <div class="btn-icon">${scriptIcon(name)}</div>
         <span class="btn-name">${label}</span>
@@ -674,16 +694,18 @@
 
   async function checkServer() {
    try {
+     // Increased timeout to 4 seconds for better stability
      const r = await fetch(`${SERVER}/ping`, { signal: AbortSignal.timeout(4000) });
      const d = await r.json();
      if (d.alive) {
        dot.classList.add('online');
        stxt.textContent = 'Bridge online';
-       if (sList.children.length < 2) loadScripts();
+       // Only reload the list if it's currently empty
+       if (sList.children.length < 2) loadScripts(); 
      }
    } catch {
      dot.classList.remove('online');
-     stxt.textContent = 'Connecting...';
+     stxt.textContent = 'Connecting...'; // Less aggressive than "OFFLINE"
    }
  }
 
