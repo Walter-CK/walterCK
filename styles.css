@@ -102,6 +102,10 @@ html:has(body.toolkit-page.loaded)::-webkit-scrollbar-thumb:hover {
   border-bottom: 1px solid var(--card-border);
 }
 
+.fp-section:last-of-type {
+  border-bottom: none;
+}
+
 /* Typography */
 h1 {
   margin: 0;
