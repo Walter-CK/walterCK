@@ -51,6 +51,8 @@ html, body {
   background-image: radial-gradient(circle at 50% 15%, var(--accent-glow) 0%, transparent 65%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+  /* Prevent iOS rubber-band overscroll from revealing html/body background */
+  overscroll-behavior: none;
 }
 
 /* Tools Page Background Override */
