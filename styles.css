@@ -7,7 +7,7 @@
   --text: #e6eef6;
   --muted: #94a3b8;
   --accent: #6b8cff;
-  --accent-glow: rgba(79, 10, 255, 0.25);
+  --accent-glow: rgba(107, 140, 255, 0.18);
 
   --glass: rgba(255, 255, 255, 0.04);
   --surface: rgba(255, 255, 255, 0.03);
@@ -666,12 +666,10 @@ a.card-link { display: block; text-decoration: none; color: inherit; }
   color: var(--fc-color, #ff6a20);
 }
 
-
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* ─── Featured Page (fp-*) — all styles for /toolkit/{slug}/ pages ──────── */
-/* ─────────────────────────────────────────────────────────────────────────── */
+/* Featured Pages (fp-*) — all styles for /toolkit/{slug} pages */
 
 body.featured-page {
+  background: #0a0d17;
   background-image: none;
 }
 body.featured-page::before {
