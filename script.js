@@ -1,4 +1,4 @@
-// GLOBAL JS
+\// GLOBAL JS
 
 // ── Slug helper (Featured pages + banner) ─────────────────────────────────
 function toSlug(title) {
@@ -262,7 +262,7 @@ if (hamburger && nav) {
 
 
 // ══════════════════════════════════════════════════════════════════════════
-// ── Main Page Intro: Orb Sweep → Clip-path Reveal ─────────────────────────
+// ── Main Page Intro: Rocket Landing → Clip-path Reveal ────────────────────
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   if (!document.querySelector('.hero-main')) return;
@@ -304,8 +304,9 @@ if (navType === 'back_forward' || window.scrollY > 1) {
   cvs.height    = window.innerHeight;
   const orb     = document.createElement('div');
   orb.id        = 'intro-orb';
+  orb.textContent = '🍪';
 
-  document.body.append(overlay, cvs, orb);
+  document.body.append(overlay, cvs);
   const ctx2d = cvs.getContext('2d');
   
   setTimeout(() => {
@@ -338,31 +339,55 @@ if (navType === 'back_forward' || window.scrollY > 1) {
       let   orbStart = null;
       let   prevX = sx, prevY = sy;
 
-      orb.style.opacity = '1';
+      // Initialise rocket angle pointing in the overall travel direction
+      // 🚀 emoji naturally points upper-right (~-45° from east in CSS),
+      // so offset by +45° so the nose tracks the direction of travel.
+      let lastAngle = Math.atan2(ty - sy, tx - sx) * (180 / Math.PI) + 45;
+
       orb.style.left    = sx + 'px';
       orb.style.top     = sy + 'px';
-
+      document.body.appendChild(orb);
+      const trailPts = [];
       function tickOrb(ts) {
         if (!orbStart) orbStart = ts;
-        const raw = Math.min((ts - orbStart) / ORB_MS, 1);
-        const e   = easeInOut(raw);
-        const x   = quad(sx, cpx, tx, e);
-        const y   = quad(sy, cpy, ty, e);
+	 orb.style.opacity = '1';
+         const raw = Math.min((ts - orbStart) / ORB_MS, 1);
+         const e   = easeInOut(raw);
+         const x   = quad(sx, cpx, tx, e);
+         const y   = quad(sy, cpy, ty, e);
+
+         // ── Update rocket rotation from direction of travel ──────────────
+         const dx_dir = x - prevX;
+         const dy_dir = y - prevY;
+         if (Math.abs(dx_dir) > 0.1 || Math.abs(dy_dir) > 0.1) {
+           lastAngle = Math.atan2(dy_dir, dx_dir) * (180 / Math.PI) + 45;
+        }
 
         if (!isMobile) {
-          ctx2d.beginPath();
-          ctx2d.moveTo(prevX, prevY);
-          ctx2d.lineTo(x, y);
-          ctx2d.lineWidth   = lerp(2.5, 0.4, e);
-          ctx2d.strokeStyle = `rgba(107,140,255,${lerp(0.45, 0.06, e)})`;
-          ctx2d.shadowColor = '#6b8cff';
-          ctx2d.shadowBlur  = 10;
-          ctx2d.stroke();
-          ctx2d.shadowBlur  = 0;
+  	  trailPts.push({ x: prevX, y: prevY });
+  	
+  	  ctx2d.clearRect(0, 0, cvs.width, cvs.height);
+  	  ctx2d.shadowColor = '#ff9030';
+  	  ctx2d.shadowBlur  = 10;
+	
+ 	   for (let i = 1; i < trailPts.length; i++) {
+  	    const t  = i / trailPts.length;   // 0 = oldest/tail, 1 = newest/head
+  	    const p  = trailPts[i];
+  	    const pp = trailPts[i - 1];
+  	    ctx2d.beginPath();
+  	    ctx2d.moveTo(pp.x, pp.y);
+  	    ctx2d.lineTo(p.x, p.y);
+  	    ctx2d.lineWidth   = lerp(0.5, 3.5, t);
+    	    ctx2d.strokeStyle = `rgba(255,${Math.round(lerp(60, 220, t))},20,${lerp(0.05, 0.55, t)})`;
+    	    ctx2d.stroke();
+ 	   }
+
+  	  ctx2d.shadowBlur  = 0;
         }
         prevX = x; prevY = y;
 
-        const scale = lerp(0.55, 2.6, e);
+        // Rocket grows slightly as it "approaches" the landing zone
+        const scale = lerp(0.4, 1.5, e);
         orb.style.left      = x + 'px';
         orb.style.top       = y + 'px';
         orb.style.transform = `translate(-50%,-50%) scale(${scale})`;
@@ -381,8 +406,9 @@ if (navType === 'back_forward' || window.scrollY > 1) {
         mainEl.style.willChange = 'clip-path';
         mainEl.style.clipPath   = `circle(0px at ${cx}px ${cy}px)`;
 
-        orb.style.transition = 'transform 0.13s ease-out, opacity 0.13s ease-out';
-        orb.style.transform  = 'translate(-50%,-50%) scale(6)';
+        // Rocket "explodes" on landing — burst outward then vanish
+        orb.style.transition = 'transform 0.15s ease-out, opacity 0.12s ease-out';
+        orb.style.transform  = `translate(-50%,-50%) scale(5)`;
         orb.style.opacity    = '0';
 
         requestAnimationFrame(() => {
