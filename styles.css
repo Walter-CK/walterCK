@@ -457,20 +457,21 @@ a.card-link { display: block; text-decoration: none; color: inherit; }
 /* Main Page Orb */
 #intro-overlay { position: fixed; inset: 0; background: #05070a; z-index: 9000; pointer-events: none; }
 #intro-canvas  { position: fixed; inset: 0; z-index: 9001; pointer-events: none; }
+
+/* Rocket — replaces the old blue dot */
 #intro-orb {
   position: fixed;
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: #6b8cff;
-  box-shadow:
-    0 0  6px  3px  rgba(107,140,255,0.95),
-    0 0 20px  9px  rgba(107,140,255,0.55),
-    0 0 42px 20px  rgba(107,140,255,0.22);
+  font-size: 30px;
+  line-height: 1;
   transform: translate(-50%, -50%);
   opacity: 0;
   z-index: 9002;
   pointer-events: none;
   will-change: left, top, transform, opacity;
+  filter:
+    drop-shadow(0 0 6px rgba(255,160,30,0.95))
+    drop-shadow(0 0 18px rgba(255,80,20,0.6))
+    drop-shadow(0 0 32px rgba(107,140,255,0.4));
 }
 
 /* Global Strip (non-main pages) */
