@@ -471,6 +471,9 @@
       canvas.height = H;
       canvas.style.display = 'block';
 
+      const newBanner = document.getElementById('new-banner');
+      if (newBanner) newBanner.style.display = 'none';
+
       const ctx   = canvas.getContext('2d');
       const rows  = Math.ceil(H / CS) + 1;
       const speed = ((rows + 1) * W) / 3100; // px per ms — ~3.1 s total
