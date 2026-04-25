@@ -18,9 +18,8 @@
   <meta property="og:type" content="website">
 
   <script>
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      history.scrollRestoration = 'manual';
-    }
+    if (history.scrollRestoration) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
   </script>
 
   <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
@@ -32,7 +31,6 @@
   <style>
     /* ── Cookie Easter Egg ── */
 
-    /* Wrapper sits around .profile-pfp to enable the peek + click */
     .pfp-cookie-wrap {
       position: relative;
       display: inline-block;
@@ -40,7 +38,6 @@
       user-select: none;
     }
 
-    /* Peeking cookie hides behind the avatar via z-index */
     .pfp-peek-cookie {
       position: absolute;
       top: 0;
@@ -51,18 +48,26 @@
       transition: transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
       pointer-events: none;
     }
-    
-    .pfp-cookie-wrap:hover .pfp-peek-cookie {
-      transform: translateX(20%) translateY(-10%) rotate(45deg);
+
+    @media (hover: hover) {
+      .pfp-cookie-wrap:hover .pfp-peek-cookie {
+        transform: translateX(20%) translateY(-10%) rotate(45deg);
+      }
     }
 
-    /* Ensure the actual pfp sits above the peeking cookie */
+    @media (hover: none) {
+      .profile-pfp:hover {
+        transform: none !important;
+        box-shadow: 0 0 40px rgba(107, 140, 255, 0.4) !important;
+      }
+    }
+
     .pfp-cookie-wrap .profile-pfp {
       position: relative;
       z-index: 2;
     }
 
-    /* The travelling cookie — positioned by JS */
+    /* The traveller wrapper — contains two children that swap */
     #cookie-traveller {
       position: fixed;
       z-index: 1001;
@@ -72,7 +77,13 @@
       display: none;
     }
 
-    /* Canvas that paints the eaten overlay */
+    /* Both cookie faces sit on top of each other; JS toggles display */
+    #cookie-traveller-happy,
+    #cookie-traveller-chomp {
+      position: absolute;
+      top: 0; left: 0;
+    }
+
     #cookie-canvas {
       position: fixed;
       inset: 0;
@@ -81,7 +92,6 @@
       display: none;
     }
 
-    /* Full-screen "eaten" finale */
     #cookie-eaten-screen {
       display: none;
       position: fixed;
@@ -94,27 +104,28 @@
     }
     #cookie-eaten-screen.visible {
       display: flex;
+      background: #05070a;
     }
 
     #cookie-eaten-msg {
       font-family: 'Oxanium', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.8rem;
       color: #6b8cff;
-      margin-top: 38px;
+      margin-top: 48px;
       letter-spacing: 0.03em;
       opacity: 0;
       transform: translateY(22px);
       animation: ck-fade-up 0.6s 0.5s forwards;
     }
     #cookie-reload-btn {
-      margin-top: 22px;
-      padding: 11px 30px;
+      margin-top: 28px;
+      padding: 14px 38px;
       background: transparent;
       border: 1.5px solid rgba(107, 140, 255, 0.5);
       color: #6b8cff;
       border-radius: 14px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 16px;
       font-family: 'Oxanium', sans-serif;
       letter-spacing: 0.05em;
       opacity: 0;
@@ -126,21 +137,14 @@
       background: rgba(107, 140, 255, 0.12);
       border-color: #6b8cff;
     }
-    /* Suppress the browser's default white flash on reload */
     #cookie-reload-btn:active,
-    #cookie-reload-btn:focus {
-      outline: none;
-    }
-    /* Keep the eaten screen painted right up until the new page loads */
-    #cookie-eaten-screen.visible {
-      background: #05070a;
-    }
+    #cookie-reload-btn:focus { outline: none; }
 
-    /* Crumbs container inside the eaten screen */
     #cookie-crumbs {
       position: absolute;
-      left: 0;
-      top: 0;
+      /* anchor to the centre of the cookie SVG so crumbs spread out symmetrically */
+      left: 50%;
+      top: 50%;
       pointer-events: none;
     }
 
@@ -173,10 +177,8 @@
     <section class="hero-main">
       <div class="container hero-inner">
 
-        <!-- Profile picture wrapped for the easter egg -->
         <div class="pfp-cookie-wrap" id="pfp-cookie-wrap">
 
-          <!-- Peeking cookie (behind pfp via z-index) -->
           <div class="pfp-peek-cookie">
             <svg width="64" height="64" viewBox="0 0 100 100">
               <defs>
@@ -188,8 +190,6 @@
               <ellipse cx="52" cy="54" rx="40" ry="37" fill="rgba(0,0,0,0.16)"/>
               <circle cx="50" cy="49" r="44" fill="#7A3A06"/>
               <circle cx="50" cy="48" r="42" fill="url(#cg-peek)"/>
-              <path d="M28 28 Q38 37 33 47" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
-              <path d="M60 22 Q70 32 65 40" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
               <ellipse cx="32" cy="29" rx="7" ry="5.5" fill="#2E1304"/>
               <ellipse cx="62" cy="24" rx="6.5" ry="5" fill="#2E1304"/>
               <ellipse cx="74" cy="51" rx="7" ry="5.5" fill="#2E1304"/>
@@ -200,17 +200,14 @@
               <circle cx="6" cy="61" r="4" fill="#7A3A06"/>
               <ellipse cx="89" cy="54" rx="10" ry="5" fill="#7A3A06" transform="rotate(28 89 54)"/>
               <circle cx="94" cy="61" r="4" fill="#7A3A06"/>
-              <!-- happy eyes -->
               <circle cx="38" cy="42" r="5.5" fill="#1A0800"/>
               <circle cx="62" cy="42" r="5.5" fill="#1A0800"/>
               <circle cx="39.5" cy="40.5" r="2" fill="white"/>
               <circle cx="63.5" cy="40.5" r="2" fill="white"/>
-              <!-- smile -->
               <path d="M34 57 Q50 71 66 57" fill="none" stroke="#1A0800" stroke-width="3.5" stroke-linecap="round"/>
             </svg>
           </div>
 
-          <!-- The real profile picture -->
           <div class="profile-pfp">
             <img src="images/walterck.png" alt="Walter MacLean" />
           </div>
@@ -292,23 +289,27 @@
 
   <!-- ── Cookie Easter Egg Elements ── -->
 
-  <!-- Canvas for the eaten overlay -->
   <canvas id="cookie-canvas"></canvas>
 
-  <!-- The travelling cookie SVG (happy mood, same as peek/end-screen) -->
+  <!--
+    Two-phase traveller:
+    #cookie-traveller-happy  — shown on click/pop-in/zip to corner (full happy cookie)
+    #cookie-traveller-chomp  — shown only when lawnmower eating starts (chomping cookie)
+    JS swaps display between them at the right moment.
+  -->
   <div id="cookie-traveller">
-    <svg width="82" height="82" viewBox="0 0 100 100">
+
+    <!-- PHASE 1: happy full cookie (same face as the peek cookie) -->
+    <svg id="cookie-traveller-happy" width="82" height="82" viewBox="0 0 100 100">
       <defs>
-        <radialGradient id="cg-eat" cx="33%" cy="28%" r="72%">
+        <radialGradient id="cg-happy" cx="33%" cy="28%" r="72%">
           <stop offset="0%" stop-color="#ECAF48"/>
           <stop offset="100%" stop-color="#8A4A0A"/>
         </radialGradient>
       </defs>
       <ellipse cx="52" cy="54" rx="40" ry="37" fill="rgba(0,0,0,0.16)"/>
       <circle cx="50" cy="49" r="44" fill="#7A3A06"/>
-      <circle cx="50" cy="48" r="42" fill="url(#cg-eat)"/>
-      <path d="M28 28 Q38 37 33 47" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
-      <path d="M60 22 Q70 32 65 40" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
+      <circle cx="50" cy="48" r="42" fill="url(#cg-happy)"/>
       <ellipse cx="32" cy="29" rx="7" ry="5.5" fill="#2E1304"/>
       <ellipse cx="62" cy="24" rx="6.5" ry="5" fill="#2E1304"/>
       <ellipse cx="74" cy="51" rx="7" ry="5.5" fill="#2E1304"/>
@@ -319,32 +320,29 @@
       <circle cx="6" cy="61" r="4" fill="#7A3A06"/>
       <ellipse cx="89" cy="54" rx="10" ry="5" fill="#7A3A06" transform="rotate(28 89 54)"/>
       <circle cx="94" cy="61" r="4" fill="#7A3A06"/>
-      <!-- friendly eyes with shine -->
       <circle cx="38" cy="42" r="5.5" fill="#1A0800"/>
       <circle cx="62" cy="42" r="5.5" fill="#1A0800"/>
       <circle cx="39.5" cy="40.5" r="2" fill="white"/>
       <circle cx="63.5" cy="40.5" r="2" fill="white"/>
-      <!-- simple curved smile -->
       <path d="M34 57 Q50 71 66 57" fill="none" stroke="#1A0800" stroke-width="3.5" stroke-linecap="round"/>
     </svg>
-  </div>
 
-  <!-- Eaten finale screen -->
-  <div id="cookie-eaten-screen">
-    <!-- Satisfied cookie -->
-    <div id="cookie-full-wrap" class="ck-pop" style="position:relative;">
-      <svg width="56" height="56" viewBox="0 0 100 100">
-        <defs>
-          <radialGradient id="cg-full" cx="33%" cy="28%" r="72%">
-            <stop offset="0%" stop-color="#ECAF48"/>
-            <stop offset="100%" stop-color="#8A4A0A"/>
-          </radialGradient>
-        </defs>
-        <ellipse cx="52" cy="54" rx="40" ry="37" fill="rgba(0,0,0,0.16)"/>
+    <!-- PHASE 2: chomping Pac-Man style cookie (hidden until eating starts) -->
+    <svg id="cookie-traveller-chomp" width="82" height="82" viewBox="0 0 100 100"
+         style="display:none; overflow:visible">
+      <defs>
+        <radialGradient id="cg-eat" cx="33%" cy="28%" r="72%">
+          <stop offset="0%" stop-color="#ECAF48"/>
+          <stop offset="100%" stop-color="#8A4A0A"/>
+        </radialGradient>
+        <clipPath id="chomp-clip">
+          <path id="chomp-clip-path" d="M50,50 L100,25 A62,62 0 1,0 100,75 Z"/>
+        </clipPath>
+      </defs>
+      <ellipse cx="52" cy="54" rx="40" ry="37" fill="rgba(0,0,0,0.16)"/>
+      <g clip-path="url(#chomp-clip)">
         <circle cx="50" cy="49" r="44" fill="#7A3A06"/>
-        <circle cx="50" cy="48" r="42" fill="url(#cg-full)"/>
-        <path d="M28 28 Q38 37 33 47" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
-        <path d="M60 22 Q70 32 65 40" fill="none" stroke="#9A6018" stroke-width="1.4" opacity="0.45"/>
+        <circle cx="50" cy="48" r="42" fill="url(#cg-eat)"/>
         <ellipse cx="32" cy="29" rx="7" ry="5.5" fill="#2E1304"/>
         <ellipse cx="62" cy="24" rx="6.5" ry="5" fill="#2E1304"/>
         <ellipse cx="74" cy="51" rx="7" ry="5.5" fill="#2E1304"/>
@@ -355,19 +353,48 @@
         <circle cx="6" cy="61" r="4" fill="#7A3A06"/>
         <ellipse cx="89" cy="54" rx="10" ry="5" fill="#7A3A06" transform="rotate(28 89 54)"/>
         <circle cx="94" cy="61" r="4" fill="#7A3A06"/>
-        <!-- squinting full eyes -->
+        <!-- eyes sit in the upper half, safe from the mouth wedge -->
+        <circle cx="35" cy="36" r="5.5" fill="#1A0800"/>
+        <circle cx="60" cy="36" r="5.5" fill="#1A0800"/>
+        <circle cx="36.5" cy="34.5" r="2" fill="white"/>
+        <circle cx="61.5" cy="34.5" r="2" fill="white"/>
+      </g>
+      <!-- no crack lines, no chomp-line elements -->
+    </svg>
+
+  </div>
+
+  <!-- Eaten finale screen -->
+  <div id="cookie-eaten-screen">
+    <div id="cookie-full-wrap" class="ck-pop" style="position:relative;">
+      <svg width="120" height="120" viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="cg-full" cx="33%" cy="28%" r="72%">
+            <stop offset="0%" stop-color="#ECAF48"/>
+            <stop offset="100%" stop-color="#8A4A0A"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="52" cy="54" rx="40" ry="37" fill="rgba(0,0,0,0.16)"/>
+        <circle cx="50" cy="49" r="44" fill="#7A3A06"/>
+        <circle cx="50" cy="48" r="42" fill="url(#cg-full)"/>
+        <ellipse cx="32" cy="29" rx="7" ry="5.5" fill="#2E1304"/>
+        <ellipse cx="62" cy="24" rx="6.5" ry="5" fill="#2E1304"/>
+        <ellipse cx="74" cy="51" rx="7" ry="5.5" fill="#2E1304"/>
+        <ellipse cx="24" cy="55" rx="6.5" ry="5" fill="#2E1304"/>
+        <ellipse cx="54" cy="66" rx="6" ry="6.5" fill="#2E1304"/>
+        <ellipse cx="44" cy="44" rx="5" ry="4" fill="#2E1304"/>
+        <ellipse cx="11" cy="54" rx="10" ry="5" fill="#7A3A06" transform="rotate(-28 11 54)"/>
+        <circle cx="6" cy="61" r="4" fill="#7A3A06"/>
+        <ellipse cx="89" cy="54" rx="10" ry="5" fill="#7A3A06" transform="rotate(28 89 54)"/>
+        <circle cx="94" cy="61" r="4" fill="#7A3A06"/>
         <path d="M31 42 Q37 36 43 42" fill="none" stroke="#1A0800" stroke-width="2.5" stroke-linecap="round"/>
         <path d="M57 42 Q63 36 69 42" fill="none" stroke="#1A0800" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- satisfied mouth -->
         <path d="M38 60 Q50 54 62 60" fill="none" stroke="#1A0800" stroke-width="3" stroke-linecap="round"/>
-        <!-- blush -->
         <circle cx="26" cy="52" r="8" fill="#F07858" opacity="0.26"/>
         <circle cx="74" cy="52" r="8" fill="#F07858" opacity="0.26"/>
-        <!-- face crumbs -->
         <rect x="27" y="60" width="5" height="3" fill="#8B4010" rx="1" opacity="0.7" transform="rotate(12 27 60)"/>
         <rect x="64" y="59" width="4" height="3" fill="#3A1A06" rx="1" opacity="0.7" transform="rotate(-9 64 59)"/>
       </svg>
-      <!-- crumbs injected by JS -->
       <div id="cookie-crumbs"></div>
     </div>
 
@@ -375,45 +402,46 @@
     <button id="cookie-reload-btn" onclick="document.documentElement.style.background='#05070a';document.body.style.background='#05070a';location.reload()">Reload</button>
   </div>
 
-  <!-- Lucide icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="script.js"></script>
 
   <!-- ── Cookie Easter Egg Script ── -->
   <script>
   (function () {
-    const CS       = 82; // cookie size px
-    const wrap     = document.getElementById('pfp-cookie-wrap');
-    const traveller = document.getElementById('cookie-traveller');
-    const canvas   = document.getElementById('cookie-canvas');
-    const eaten    = document.getElementById('cookie-eaten-screen');
-    const crumbsEl = document.getElementById('cookie-crumbs');
+    const CS          = 82;
+    const wrap        = document.getElementById('pfp-cookie-wrap');
+    const traveller   = document.getElementById('cookie-traveller');
+    const happySvg    = document.getElementById('cookie-traveller-happy');
+    const chompSvg    = document.getElementById('cookie-traveller-chomp');
+    const canvas      = document.getElementById('cookie-canvas');
+    const eaten       = document.getElementById('cookie-eaten-screen');
+    const crumbsEl    = document.getElementById('cookie-crumbs');
 
-    let phase = 'idle'; // idle | jumping | eating | eaten
+    let phase = 'idle';
     let rafId = null;
 
-    // ── Build random crumbs for the finale ──────────────────────────────
+    // ── Crumbs for finale ────────────────────────────────────────────────
     const CRUMB_COLS = ['#9A5010','#C4841E','#6B3508','#E09835','#4A2004'];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 28; i++) {
       const d = document.createElement('div');
-      const w = 3  + Math.random() * 13;
-      const h = 2  + Math.random() * 6;
+      const w = 3  + Math.random() * 14;
+      const h = 2  + Math.random() * 7;
       Object.assign(d.style, {
-        position:  'absolute',
-        left:      ((Math.random() - 0.5) * 230) + 'px',
-        top:       (28 + Math.random() * 110) + 'px',
-        width:     w + 'px',
-        height:    h + 'px',
-        background: CRUMB_COLS[Math.floor(Math.random() * CRUMB_COLS.length)],
+        position:     'absolute',
+        left:         ((Math.random() - 0.5) * 360) + 'px',
+        top:          ((Math.random() - 0.5) * 200) + 'px',
+        width:        w + 'px',
+        height:       h + 'px',
+        background:   CRUMB_COLS[Math.floor(Math.random() * CRUMB_COLS.length)],
         borderRadius: '2px',
-        transform: 'rotate(' + (Math.random() * 360) + 'deg)',
-        opacity:   '0.72',
-        pointerEvents: 'none',
+        transform:    'rotate(' + (Math.random() * 360) + 'deg)',
+        opacity:      '0.72',
+        pointerEvents:'none',
       });
       crumbsEl.appendChild(d);
     }
 
-    // ── Click handler on the avatar wrap ────────────────────────────────
+    // ── Click handler ────────────────────────────────────────────────────
     wrap.addEventListener('click', function () {
       if (phase !== 'idle') return;
 
@@ -421,7 +449,10 @@
       const sx   = rect.left + rect.width  / 2 - CS / 2;
       const sy   = rect.top  + rect.height / 2 - CS / 2;
 
-      // Snap traveller to avatar centre, scaled to 0
+      // Start with happy face, chomp hidden
+      happySvg.style.display = 'block';
+      chompSvg.style.display = 'none';
+
       Object.assign(traveller.style, {
         display:    'block',
         transition: 'none',
@@ -431,11 +462,9 @@
       });
 
       phase = 'jumping';
-
-      // Hide the peek cookie immediately so it doesn't linger behind the pfp
       wrap.querySelector('.pfp-peek-cookie').style.visibility = 'hidden';
 
-      // Pop open
+      // Pop out from behind pfp
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
           traveller.style.transition = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1)';
@@ -443,44 +472,87 @@
         });
       });
 
-      // Zip to top-left
+      // Zip to top-left corner — still happy face during the zip
       setTimeout(function () {
         traveller.style.transition = 'left 0.32s ease-in, top 0.32s ease-in, transform 0.18s ease-out';
-        traveller.style.left       = (-CS) + 'px';
-        traveller.style.top        = '0px';
-        traveller.style.transform  = 'scale(1)';
+        traveller.style.left      = (-CS) + 'px';
+        traveller.style.top       = '0px';
+        traveller.style.transform = 'scale(1)';
       }, 320);
 
-      // Start lawnmower
+      // Switch to chomping face exactly when eating begins
       setTimeout(function () {
+        happySvg.style.display = 'none';
+        chompSvg.style.display = 'block';
         phase = 'eating';
         startEating();
       }, 640);
     });
 
+    // ── Update chomping mouth clip each frame ────────────────────────────
+    function updateChomp(mouthHalfAngleDeg, dir) {
+      const clipPathEl = document.getElementById('chomp-clip-path');
+      if (!clipPathEl) return;
+
+      const rad = mouthHalfAngleDeg * Math.PI / 180;
+      const r   = 62;
+      const tx  = 50 + r * Math.cos(-rad);
+      const ty  = 50 + r * Math.sin(-rad);
+      const bx  = 50 + r * Math.cos(rad);
+      const by  = 50 + r * Math.sin(rad);
+
+      // Everything except the wedge stays visible
+      clipPathEl.setAttribute('d', `M50,50 L${tx},${ty} A${r},${r} 0 1,0 ${bx},${by} Z`);
+
+      // Flip for leftward travel so mouth always faces the uneaten page
+      chompSvg.style.transform       = dir === -1 ? 'scaleX(-1)' : 'none';
+      chompSvg.style.transformOrigin = '41px 41px';
+    }
+
     // ── Lawnmower eating loop ────────────────────────────────────────────
     function startEating() {
       traveller.style.transition = 'none';
 
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      canvas.width  = W;
-      canvas.height = H;
       canvas.style.display = 'block';
-
       const newBanner = document.getElementById('new-banner');
       if (newBanner) newBanner.style.display = 'none';
 
-      const ctx   = canvas.getContext('2d');
-      const rows  = Math.ceil(H / CS) + 1;
-      const speed = ((rows + 1) * W) / 3100; // px per ms — ~3.1 s total
-
+      // State that persists across resize restarts
       let x = -CS, row = 0, dir = 1, lastTs = null;
-      const parts = [];
+      const parts    = [];
+      const trailPts = [];
+
+      // Resize handler: re-stamp the already-eaten area black on the
+      // new canvas size and keep going from the current cookie position.
+      function onResize() {
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // Repaint everything already eaten so there's no gap
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#05070a';
+        if (row > 0) ctx.fillRect(0, 0, canvas.width, row * CS);
+        const ry = row * CS;
+        if (dir === 1) {
+          if (x > 0) ctx.fillRect(0, ry, x, CS);
+        } else {
+          const s = x + CS;
+          if (s < canvas.width) ctx.fillRect(s, ry, canvas.width - s, CS);
+        }
+      }
+      window.addEventListener('resize', onResize);
+
+      // Initial size
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      function getW() { return window.innerWidth;  }
+      function getH() { return window.innerHeight; }
 
       function finish() {
+        window.removeEventListener('resize', onResize);
+        const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#05070a';
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         traveller.style.display = 'none';
         canvas.style.display    = 'none';
         eaten.classList.add('visible');
@@ -488,13 +560,18 @@
       }
 
       function tick(ts) {
+        const W = getW();
+        const H = getH();
+        const rows  = Math.ceil(H / CS) + 1;
+        const speed = ((rows + 1) * W) / 3100;
+        const ctx   = canvas.getContext('2d');
+
         if (!lastTs) lastTs = ts;
         const dt = Math.min(ts - lastTs, 40);
         lastTs = ts;
 
         x += dir * speed * dt;
 
-        // Row turnover
         if (dir === 1 && x >= W) {
           row++; dir = -1; x = W + CS;
           if (row >= rows) { finish(); return; }
@@ -503,10 +580,14 @@
           if (row >= rows) { finish(); return; }
         }
 
-        // Spawn crumb particles
+        const curY = row * CS;
+
+        const chompHalf = 24 + 14 * Math.sin(ts * 0.012);
+        updateChomp(chompHalf, dir);
+
         if (Math.random() < 0.3) {
-          const mx = x + (dir === 1 ? CS * 0.82 : CS * 0.18);
-          const my = row * CS + CS * 0.66;
+          const mx = x + (dir === 1 ? CS * 0.85 : CS * 0.15);
+          const my = curY + CS * 0.66;
           parts.push({
             x: mx, y: my,
             vx: dir * (1 + Math.random() * 2.5) + (Math.random() - 0.5) * 1.5,
@@ -520,23 +601,36 @@
           });
         }
 
-        // Paint eaten overlay — solid fill so nothing bleeds through
-        ctx.clearRect(0, 0, W, H);
+        // Eaten overlay — use live canvas dimensions so it always fills the viewport
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#05070a';
-
-        // All fully-eaten rows
-        if (row > 0) ctx.fillRect(0, 0, W, row * CS);
-
-        // Current partial row
+        if (row > 0) ctx.fillRect(0, 0, canvas.width, row * CS);
         const ry = row * CS;
         if (dir === 1) {
           if (x > 0) ctx.fillRect(0, ry, x, CS);
         } else {
           const s = x + CS;
-          if (s < W) ctx.fillRect(s, ry, W - s, CS);
+          if (s < canvas.width) ctx.fillRect(s, ry, canvas.width - s, CS);
         }
 
-        // Paint crumb particles
+        trailPts.push({ x: x + CS / 2, y: curY + CS / 2 });
+        if (trailPts.length > 55) trailPts.shift();
+
+        ctx.shadowColor = '#ff9030';
+        ctx.shadowBlur  = 8;
+        for (let i = 1; i < trailPts.length; i++) {
+          const t  = i / trailPts.length;
+          const p  = trailPts[i];
+          const pp = trailPts[i - 1];
+          ctx.beginPath();
+          ctx.moveTo(pp.x, pp.y);
+          ctx.lineTo(p.x, p.y);
+          ctx.lineWidth   = 0.5 + t * 3.5;
+          ctx.strokeStyle = `rgba(255,${Math.round(60 + t * 160)},20,${(t * 0.55).toFixed(2)})`;
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+
         for (let i = parts.length - 1; i >= 0; i--) {
           const p = parts[i];
           p.x += p.vx; p.y += p.vy; p.vy += 0.18;
@@ -551,10 +645,8 @@
           ctx.restore();
         }
 
-        // Move traveller element
-        traveller.style.left      = x + 'px';
-        traveller.style.top       = (row * CS) + 'px';
-        traveller.style.transform = dir === -1 ? 'scaleX(-1)' : 'none';
+        traveller.style.left = x + 'px';
+        traveller.style.top  = (row * CS) + 'px';
 
         rafId = requestAnimationFrame(tick);
       }
