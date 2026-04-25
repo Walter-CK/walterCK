@@ -178,7 +178,6 @@ if (gridContainer) {
       : `<button onclick="window.open('${item.link}','_blank')">Open</button>
          <button onclick="copyLink(this,'${item.link}')">Copy</button>`;
 
-    // Inject per-card CSS vars so the stylesheet can do rgba() without JS colour math
     const featuredStyle = isFeatured
       ? ` style="--fc-rgb:${hexToRgb(item.color)};--fc-color:${item.color}"`
       : '';
@@ -269,13 +268,13 @@ if (hamburger && nav) {
 
   const mainEl = document.querySelector('main');
 
-  // ── Early-exit cases: reveal main immediately, skip animation ────────────
-
+  // ── Early-exit: reduced motion ───────────────────────────────────────────
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     mainEl.style.visibility = 'visible';
     return;
   }
 
+  // ── Skip if navigating back from toolkit ────────────────────────────────
   const BACK_KEY = 'walterck_toolkit_back';
   if (sessionStorage.getItem(BACK_KEY)) {
     sessionStorage.removeItem(BACK_KEY);
@@ -284,11 +283,14 @@ if (hamburger && nav) {
     return;
   }
 
-const navType = performance.getEntriesByType('navigation')[0]?.type;
-if (navType === 'back_forward' || window.scrollY > 1) {
-  mainEl.style.visibility = 'visible';
-  return;
-}
+  // FIX 5: Removed `scrollY > 1` bail-out — we always scroll to top in
+  // the <head> script so the animation should always run on a real page load.
+  // Only skip for genuine back/forward cache navigation.
+  const navType = performance.getEntriesByType('navigation')[0]?.type;
+  if (navType === 'back_forward') {
+    mainEl.style.visibility = 'visible';
+    return;
+  }
 
   // ── Run animation ─────────────────────────────────────────────────────────
 
@@ -308,139 +310,127 @@ if (navType === 'back_forward' || window.scrollY > 1) {
 
   document.body.append(overlay, cvs);
   const ctx2d = cvs.getContext('2d');
-  
+
   setTimeout(() => {
-    if (window.scrollY > 1) {
-      mainEl.style.visibility = 'visible';
-      [overlay, cvs, orb].forEach(el => el?.remove());
-      document.body.style.overflow = '';
-      return;
-    }
-  
     document.fonts.ready.then(() => {
       requestAnimationFrame(() => {
-      const pfp = document.querySelector('.profile-pfp');
-      if (!pfp) { cleanup(); return; }
+        const pfp = document.querySelector('.profile-pfp');
+        if (!pfp) { cleanup(); return; }
 
-      const rect = pfp.getBoundingClientRect();
-      const tx   = rect.left + rect.width  / 2;
-      const ty   = rect.top  + rect.height / 2;
+        const rect = pfp.getBoundingClientRect();
+        const tx   = rect.left + rect.width  / 2;
+        const ty   = rect.top  + rect.height / 2;
 
-      const sx  = -18;
-      const sy  = window.innerHeight * 0.5;
-      const cpx = window.innerWidth  * 0.36;
-      const cpy = ty - Math.min(105, window.innerHeight * 0.15);
+        const sx  = -18;
+        const sy  = window.innerHeight * 0.5;
+        const cpx = window.innerWidth  * 0.36;
+        const cpy = ty - Math.min(105, window.innerHeight * 0.15);
 
-      function quad(p0, p1, p2, t) { return (1-t)*(1-t)*p0 + 2*(1-t)*t*p1 + t*t*p2; }
-      function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
-      function lerp(a, b, t) { return a + (b-a)*t; }
+        function quad(p0, p1, p2, t) { return (1-t)*(1-t)*p0 + 2*(1-t)*t*p1 + t*t*p2; }
+        function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+        function lerp(a, b, t) { return a + (b-a)*t; }
 
-      const ORB_MS   = isMobile ? 480 : 800;
-      let   orbStart = null;
-      let   prevX = sx, prevY = sy;
+        const ORB_MS   = isMobile ? 480 : 800;
+        let   orbStart = null;
+        let   prevX = sx, prevY = sy;
 
-      // Initialise rocket angle pointing in the overall travel direction
-      // 🚀 emoji naturally points upper-right (~-45° from east in CSS),
-      // so offset by +45° so the nose tracks the direction of travel.
-      let lastAngle = Math.atan2(ty - sy, tx - sx) * (180 / Math.PI) + 45;
+        let lastAngle = Math.atan2(ty - sy, tx - sx) * (180 / Math.PI) + 45;
 
-      orb.style.left    = sx + 'px';
-      orb.style.top     = sy + 'px';
-      document.body.appendChild(orb);
-      const trailPts = [];
-      function tickOrb(ts) {
-        if (!orbStart) orbStart = ts;
-	 orb.style.opacity = '1';
-         const raw = Math.min((ts - orbStart) / ORB_MS, 1);
-         const e   = easeInOut(raw);
-         const x   = quad(sx, cpx, tx, e);
-         const y   = quad(sy, cpy, ty, e);
+        orb.style.left    = sx + 'px';
+        orb.style.top     = sy + 'px';
+        document.body.appendChild(orb);
 
-         // ── Update rocket rotation from direction of travel ──────────────
-         const dx_dir = x - prevX;
-         const dy_dir = y - prevY;
-         if (Math.abs(dx_dir) > 0.1 || Math.abs(dy_dir) > 0.1) {
-           lastAngle = Math.atan2(dy_dir, dx_dir) * (180 / Math.PI) + 45;
+        // FIX 4: trail enabled on all devices (removed isMobile guard)
+        const trailPts = [];
+
+        function tickOrb(ts) {
+          if (!orbStart) orbStart = ts;
+          orb.style.opacity = '1';
+          const raw = Math.min((ts - orbStart) / ORB_MS, 1);
+          const e   = easeInOut(raw);
+          const x   = quad(sx, cpx, tx, e);
+          const y   = quad(sy, cpy, ty, e);
+
+          const dx_dir = x - prevX;
+          const dy_dir = y - prevY;
+          if (Math.abs(dx_dir) > 0.1 || Math.abs(dy_dir) > 0.1) {
+            lastAngle = Math.atan2(dy_dir, dx_dir) * (180 / Math.PI) + 45;
+          }
+
+          // Trail — draw on all devices
+          trailPts.push({ x: prevX, y: prevY });
+
+          ctx2d.clearRect(0, 0, cvs.width, cvs.height);
+          ctx2d.shadowColor = '#ff9030';
+          ctx2d.shadowBlur  = 10;
+
+          for (let i = 1; i < trailPts.length; i++) {
+            const t  = i / trailPts.length;
+            const p  = trailPts[i];
+            const pp = trailPts[i - 1];
+            ctx2d.beginPath();
+            ctx2d.moveTo(pp.x, pp.y);
+            ctx2d.lineTo(p.x, p.y);
+            ctx2d.lineWidth   = lerp(0.5, 3.5, t);
+            ctx2d.strokeStyle = `rgba(255,${Math.round(lerp(60, 220, t))},20,${lerp(0.05, 0.55, t)})`;
+            ctx2d.stroke();
+          }
+
+          ctx2d.shadowBlur = 0;
+
+          prevX = x; prevY = y;
+
+          const scale = lerp(0.4, 1.5, e);
+          orb.style.left      = x + 'px';
+          orb.style.top       = y + 'px';
+          orb.style.transform = `translate(-50%,-50%) scale(${scale})`;
+
+          if (raw < 1) requestAnimationFrame(tickOrb);
+          else         startReveal(tx, ty);
         }
 
-        if (!isMobile) {
-  	  trailPts.push({ x: prevX, y: prevY });
-  	
-  	  ctx2d.clearRect(0, 0, cvs.width, cvs.height);
-  	  ctx2d.shadowColor = '#ff9030';
-  	  ctx2d.shadowBlur  = 10;
-	
- 	   for (let i = 1; i < trailPts.length; i++) {
-  	    const t  = i / trailPts.length;   // 0 = oldest/tail, 1 = newest/head
-  	    const p  = trailPts[i];
-  	    const pp = trailPts[i - 1];
-  	    ctx2d.beginPath();
-  	    ctx2d.moveTo(pp.x, pp.y);
-  	    ctx2d.lineTo(p.x, p.y);
-  	    ctx2d.lineWidth   = lerp(0.5, 3.5, t);
-    	    ctx2d.strokeStyle = `rgba(255,${Math.round(lerp(60, 220, t))},20,${lerp(0.05, 0.55, t)})`;
-    	    ctx2d.stroke();
- 	   }
+        requestAnimationFrame(tickOrb);
 
-  	  ctx2d.shadowBlur  = 0;
-        }
-        prevX = x; prevY = y;
+        function startReveal(cx, cy) {
+          document.body.style.overflow = '';
 
-        // Rocket grows slightly as it "approaches" the landing zone
-        const scale = lerp(0.4, 1.5, e);
-        orb.style.left      = x + 'px';
-        orb.style.top       = y + 'px';
-        orb.style.transform = `translate(-50%,-50%) scale(${scale})`;
+          mainEl.style.visibility = 'visible';
+          mainEl.style.willChange = 'clip-path';
+          mainEl.style.clipPath   = `circle(0px at ${cx}px ${cy}px)`;
 
-        if (raw < 1) requestAnimationFrame(tickOrb);
-        else         startReveal(tx, ty);
-      }
-
-      requestAnimationFrame(tickOrb);
-
-      function startReveal(cx, cy) {
-        document.body.style.overflow = '';
-
-        // Make main visible now — clip-path takes over as the visual mask from here
-        mainEl.style.visibility = 'visible';
-        mainEl.style.willChange = 'clip-path';
-        mainEl.style.clipPath   = `circle(0px at ${cx}px ${cy}px)`;
-
-        // Rocket "explodes" on landing — burst outward then vanish
-        orb.style.transition = 'transform 0.15s ease-out, opacity 0.12s ease-out';
-        orb.style.transform  = `translate(-50%,-50%) scale(5)`;
-        orb.style.opacity    = '0';
-
-        requestAnimationFrame(() => {
-          overlay.remove();
-          cvs.style.transition = 'opacity 0.12s';
-          cvs.style.opacity    = '0';
-
-          const revealDuration = isMobile ? '2s'  : '5s';
-          const revealEase     = isMobile
-            ? 'cubic-bezier(0.16, 1, 0.3, 1)'
-            : 'cubic-bezier(0.22, 1, 0.36, 1)';
+          orb.style.transition = 'transform 0.15s ease-out, opacity 0.12s ease-out';
+          orb.style.transform  = `translate(-50%,-50%) scale(5)`;
+          orb.style.opacity    = '0';
 
           requestAnimationFrame(() => {
-            mainEl.style.transition = `clip-path ${revealDuration} ${revealEase}`;
-            mainEl.style.clipPath   = `circle(200vmax at ${cx}px ${cy}px)`;
+            overlay.remove();
+            cvs.style.transition = 'opacity 0.12s';
+            cvs.style.opacity    = '0';
 
-            const cleanupDelay = isMobile ? 2100 : 5200;
-            setTimeout(cleanup, cleanupDelay);
+            const revealDuration = isMobile ? '2s'  : '5s';
+            const revealEase     = isMobile
+              ? 'cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+            requestAnimationFrame(() => {
+              mainEl.style.transition = `clip-path ${revealDuration} ${revealEase}`;
+              mainEl.style.clipPath   = `circle(200vmax at ${cx}px ${cy}px)`;
+
+              const cleanupDelay = isMobile ? 2100 : 5200;
+              setTimeout(cleanup, cleanupDelay);
+            });
           });
-        });
-      }
-
-      function cleanup() {
-        if (mainEl) {
-          mainEl.style.transition = '';
-          mainEl.style.clipPath   = '';
-          mainEl.style.willChange = '';
-          // visibility stays 'visible' — do not reset
         }
-        [overlay, cvs, orb].forEach(el => el?.remove());
-      }
-    });
+
+        function cleanup() {
+          if (mainEl) {
+            mainEl.style.transition = '';
+            mainEl.style.clipPath   = '';
+            mainEl.style.willChange = '';
+          }
+          [overlay, cvs, orb].forEach(el => el?.remove());
+        }
+      });
     });
   }, 100);
 })();
@@ -449,8 +439,6 @@ if (navType === 'back_forward' || window.scrollY > 1) {
 (function () {
   if (document.querySelector('.hero-main')) return;
 
-  // Reveal main immediately — the strips are a fixed overlay on top, so the
-  // content underneath is covered by them while they animate away.
   const mainEl = document.querySelector('main');
   if (mainEl) mainEl.style.visibility = 'visible';
 
@@ -485,14 +473,10 @@ if (navType === 'back_forward' || window.scrollY > 1) {
 
 // ══════════════════════════════════════════════════════════════════════════
 // ── Featured Page: Auto-pull shortcut link + icon from toolkit.json ────────
-// Finds the matching item by slug (URL path segment) and updates:
-//   - all .fp-shortcut-link hrefs
-//   - the hero icon to match the item's icon in the JSON
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   if (!document.querySelector('.fp-hero')) return;
 
-  // Derive slug from URL: /toolkit/arise/ → 'arise'
   const slug = window.location.pathname.split('/').filter(Boolean).pop();
   if (!slug) return;
 
@@ -505,14 +489,12 @@ if (navType === 'back_forward' || window.scrollY > 1) {
       });
       if (!item) return;
 
-      // Update shortcut download link
       if (item.link) {
         document.querySelectorAll('.fp-shortcut-link').forEach(el => {
           el.href = item.link;
         });
       }
 
-      // Swap hero icon to match JSON — overrides whatever is hardcoded in HTML
       if (item.icon) {
         const iconEl = document.querySelector('.fp-hero-icon [data-lucide]');
         if (iconEl) {
@@ -521,7 +503,7 @@ if (navType === 'back_forward' || window.scrollY > 1) {
         }
       }
     })
-    .catch(() => {}); // fail silently — icon degrades to whatever is in the HTML
+    .catch(() => {});
 })();
 
 
