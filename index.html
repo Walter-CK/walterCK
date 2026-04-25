@@ -44,15 +44,16 @@
     .pfp-peek-cookie {
       position: absolute;
       top: 0;
-      left: 50%;
+      right: 0;
+      left: unset; 
       z-index: 1;
-      transform: translateX(-50%) translateY(30%);
+      transform: translateX(30%) translateY(30%) rotate(45deg);
       transition: transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
       pointer-events: none;
-      will-change: transform;
     }
+    
     .pfp-cookie-wrap:hover .pfp-peek-cookie {
-      transform: translateX(-50%) translateY(-44%);
+      transform: translateX(30%) translateY(-44%) rotate(45deg);
     }
 
     /* Ensure the actual pfp sits above the peeking cookie */
@@ -173,7 +174,7 @@
       <div class="container hero-inner">
 
         <!-- Profile picture wrapped for the easter egg -->
-        <div class="pfp-cookie-wrap" id="pfp-cookie-wrap" title="Try clicking! 🍪">
+        <div class="pfp-cookie-wrap" id="pfp-cookie-wrap" title="Click me! 🍪">
 
           <!-- Peeking cookie (behind pfp via z-index) -->
           <div class="pfp-peek-cookie">
@@ -274,10 +275,6 @@
           <article class="card card--locked">
             <h3>🎛️</h3>
             <p>Coming</p>
-          </article>
-          <article class="card card--locked">
-            <h3>Journey</h3>
-            <p>🤨</p>
           </article>
         </div>
       </div>
