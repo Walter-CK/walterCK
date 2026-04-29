@@ -59,7 +59,8 @@ if (gridContainer) {
 
   let items       = [];
   let categoryMap = {};
-  let activeFilter = 'All';
+  // Multi-select: Set of active category names. Empty set = show all.
+  const activeFilters = new Set();
 
   function isScriptLabel(text) {
     if (!text) return false;
@@ -139,17 +140,24 @@ if (gridContainer) {
   }
 
   function renderFilters() {
-    const categories = ['All', ...Object.keys(categoryMap).sort(
+    // No 'All' chip — categories only. Empty activeFilters = show all.
+    const categories = [...Object.keys(categoryMap).sort(
       (a, b) => (parseInt(categoryMap[a]) || 999) - (parseInt(categoryMap[b]) || 999)
     )];
 
     filterContainer.innerHTML = categories.map(cat => `
-      <button class="filter-chip ${activeFilter === cat ? 'active' : ''}" data-cat="${cat}">${cat}</button>
+      <button class="filter-chip ${activeFilters.has(cat) ? 'active' : ''}" data-cat="${cat}">${cat}</button>
     `).join('');
 
     filterContainer.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
-        activeFilter = btn.dataset.cat;
+        const cat = btn.dataset.cat;
+        // Toggle: clicking an active chip deselects it
+        if (activeFilters.has(cat)) {
+          activeFilters.delete(cat);
+        } else {
+          activeFilters.add(cat);
+        }
         renderFilters();
         applyFilters();
       });
@@ -232,7 +240,8 @@ if (gridContainer) {
       const matchesSearch = it.title.toLowerCase().includes(val) ||
                             it.category.toLowerCase().includes(val) ||
                             it.tag.toLowerCase().includes(val);
-      const matchesCategory = activeFilter === 'All' || it.category === activeFilter;
+      // Empty set = no filter active = show all; otherwise must match a selected cat
+      const matchesCategory = activeFilters.size === 0 || activeFilters.has(it.category);
       return matchesSearch && matchesCategory;
     }).sort((a, b) => a.id - b.id);
 
