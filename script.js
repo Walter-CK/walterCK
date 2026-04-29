@@ -59,8 +59,8 @@ if (gridContainer) {
 
   let items       = [];
   let categoryMap = {};
-  // Multi-select: Set of active category names. Empty set = show all.
-  const activeFilters = new Set();
+  // null = no filter active (show all); string = selected category
+  let activeFilter = null;
 
   function isScriptLabel(text) {
     if (!text) return false;
@@ -140,24 +140,20 @@ if (gridContainer) {
   }
 
   function renderFilters() {
-    // No 'All' chip — categories only. Empty activeFilters = show all.
+    // No 'All' chip — categories only. Clicking the active chip deselects it.
     const categories = [...Object.keys(categoryMap).sort(
       (a, b) => (parseInt(categoryMap[a]) || 999) - (parseInt(categoryMap[b]) || 999)
     )];
 
     filterContainer.innerHTML = categories.map(cat => `
-      <button class="filter-chip ${activeFilters.has(cat) ? 'active' : ''}" data-cat="${cat}">${cat}</button>
+      <button class="filter-chip ${activeFilter === cat ? 'active' : ''}" data-cat="${cat}">${cat}</button>
     `).join('');
 
     filterContainer.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         const cat = btn.dataset.cat;
-        // Toggle: clicking an active chip deselects it
-        if (activeFilters.has(cat)) {
-          activeFilters.delete(cat);
-        } else {
-          activeFilters.add(cat);
-        }
+        // Toggle: clicking the already-active chip clears the filter
+        activeFilter = activeFilter === cat ? null : cat;
         renderFilters();
         applyFilters();
       });
@@ -240,8 +236,8 @@ if (gridContainer) {
       const matchesSearch = it.title.toLowerCase().includes(val) ||
                             it.category.toLowerCase().includes(val) ||
                             it.tag.toLowerCase().includes(val);
-      // Empty set = no filter active = show all; otherwise must match a selected cat
-      const matchesCategory = activeFilters.size === 0 || activeFilters.has(it.category);
+      // null = no filter active = show all
+      const matchesCategory = activeFilter === null || it.category === activeFilter;
       return matchesSearch && matchesCategory;
     }).sort((a, b) => a.id - b.id);
 
