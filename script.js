@@ -485,6 +485,9 @@ if (hamburger && nav) {
     .then(raw => {
       const item = raw.find(it => {
         if (!it.title) return false;
+        return it.slug === slug;
+      }) || raw.find(it => {
+        if (!it.title) return false;
         return (it.slug || toSlug(it.title)) === slug;
       });
       if (!item) return;
