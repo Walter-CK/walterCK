@@ -1,0 +1,7 @@
+Stone Sword,
+Balloon Sword,
+Light Pants,
+Heavy Boots,
+Balloon Sword,
+Light Pants,
+Heavy Boots,
