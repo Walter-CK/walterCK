@@ -1,1 +1,0 @@
-Get the hours, minutes, seconds to next shift through API shortcut
