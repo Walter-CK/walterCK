@@ -3,7 +3,6 @@
 // icon-color: red; icon-glyph: robot;
 const CryptoJS = importModule('Encrypting Nonsense')
 
-// Get input from Shortcuts
 const input = args.shortcutParameter
 
 if (!input || !input.mode || !input.text) {
@@ -12,23 +11,48 @@ if (!input || !input.mode || !input.text) {
   return
 }
 
-// Shared key + IV
-const password = "REDACTED"
+const password = Keychain.get("ENC_PASSWORD")
 const key = CryptoJS.SHA256(password)
-const iv = CryptoJS.enc.Utf8.parse("initialvector123")
+const mode = input.mode.toLowerCase()
 
 let output
 
-if (input.mode.toLowerCase() === "encrypt") {
+if (mode === "encrypt") {
 
-  const encrypted = CryptoJS.AES.encrypt(input.text, key, { iv: iv }).toString()
-  output = encrypted
+  const iv = CryptoJS.lib.WordArray.random(16)
+  const encrypted = CryptoJS.AES.encrypt(input.text, key, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  })
+  output = iv.toString() + ":" + encrypted.toString()
 
-} else if (input.mode.toLowerCase() === "decrypt") {
+} else if (mode === "decrypt") {
 
   try {
-    const bytes = CryptoJS.AES.decrypt(input.text, key, { iv: iv })
-    output = bytes.toString(CryptoJS.enc.Utf8) || "Error: Decryption failed"
+    if (input.text.includes(":")) {
+      // New format — random IV
+      const colonIndex = input.text.indexOf(":")
+      const ivHex = input.text.slice(0, colonIndex)
+      const encryptedText = input.text.slice(colonIndex + 1)
+      const iv = CryptoJS.enc.Hex.parse(ivHex)
+
+      const bytes = CryptoJS.AES.decrypt(encryptedText, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      })
+      output = bytes.toString(CryptoJS.enc.Utf8) || "Error: Decryption failed"
+    } else {
+      // Legacy format — hardcoded IV (remove once old data is migrated)
+      const iv = CryptoJS.enc.Utf8.parse("initialvector123")
+      const bytes = CryptoJS.AES.decrypt(input.text, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      })
+      output = bytes.toString(CryptoJS.enc.Utf8) || "Error: Decryption failed"
+    }
   } catch (e) {
     output = "Error: Decryption failed"
   }
