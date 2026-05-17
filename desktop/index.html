@@ -2,13 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>CK - Desktop</title>
+  <title>WalterCK · Desktop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" href="../images/favicons/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="../images/favicons/apple-touch-icon.png">
-  <link rel="alternate icon" href="../images/favicons/favicon.ico" type="image/x-icon">
-  <link rel="manifest" href="../images/favicons/site.webmanifest">
   <style>
     /* ─── Tokens — matches walterck.com ─── */
     :root {
@@ -249,6 +245,18 @@
       border-color: rgba(107,140,255,0.45);
       box-shadow: 0 0 10px rgba(107,140,255,0.15);
     }
+
+    .reorder-input {
+      width: 32px; padding: 1px 4px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(107,140,255,0.4);
+      border-radius: 4px;
+      color: var(--accent); font-family: var(--font);
+      font-size: 0.68rem; text-align: center;
+      outline: none;
+    }
+    .reorder-input::-webkit-inner-spin-button,
+    .reorder-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
     /* Delete × button on each note label row */
     .list-label-row {
@@ -662,6 +670,8 @@
 
   /* ══════════════════════════════════════════
      NOTES — dynamic, driven by server /notes
+     Format: array of [title, content] pairs
+     Order = array order. One write per change.
   ══════════════════════════════════════════ */
   (function () {
     const NOTES_URL  = 'http://localhost:8765/notes';
@@ -673,45 +683,70 @@
     const btnConfirm = document.getElementById('btn-confirm-note');
     const btnCancel  = document.getElementById('btn-cancel-note');
 
-    // label → { block, box, lbl }
-    const boxes      = new Map();
-    const saveTimers = new Map();  // tracks in-flight / pending saves — key = label
+    // Ordered list of [title, content] — source of truth for DOM order
+    let notePairs = [];
+    // title → { block, box, lbl }
+    const boxes = new Map();
 
-    // ── Hover-to-scroll — exact same pattern as tuya panel ───────────
+    // ── Hover-to-scroll ───────────────────────────────────────────────
     (function () {
       const content = document.getElementById('notes-content');
       const zTop    = document.getElementById('notes-scroll-top');
       const zBot    = document.getElementById('notes-scroll-bottom');
       const SPEED   = 12;
-      let rafId     = null;
-      let dir       = 0;
-
+      let rafId = null, dir = 0;
       function updateZones() {
         zTop.classList.toggle('hidden', content.scrollTop <= 0);
         zBot.classList.toggle('hidden', content.scrollTop + content.clientHeight >= content.scrollHeight - 1);
       }
-
-      function tick() {
-        content.scrollTop += dir * SPEED;
-        updateZones();
-        rafId = requestAnimationFrame(tick);
-      }
-
+      function tick() { content.scrollTop += dir * SPEED; updateZones(); rafId = requestAnimationFrame(tick); }
       function start(d) { dir = d; if (!rafId) rafId = requestAnimationFrame(tick); }
       function stop()   { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
-
       zTop.addEventListener('mouseenter', () => start(-1));
       zTop.addEventListener('mouseleave', stop);
       zBot.addEventListener('mouseenter', () => start(1));
       zBot.addEventListener('mouseleave', stop);
       content.addEventListener('scroll', updateZones);
-
-      const obs = new MutationObserver(updateZones);
-      obs.observe(content, { childList: true, subtree: true });
+      new MutationObserver(updateZones).observe(content, { childList: true, subtree: true });
       updateZones();
     })();
 
-    // ── Create note form ──────────────────────────────────────────────
+    // ── Persist entire notePairs array to server ──────────────────────
+    let writeInProgress = false;
+    let writePending = false;
+    let lastEditTime = 0;
+    let lastSyncTime = 0;
+
+    async function persistAll() {
+      if (writeInProgress) {
+        writePending = true; // another write will run after this one finishes
+        return;
+      }
+      writeInProgress = true;
+      writePending = false;
+      const snapshot = JSON.stringify(notePairs);
+      const editedAt = lastEditTime;
+      try {
+        await fetch(NOTES_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: snapshot
+        });
+        if (lastEditTime === editedAt) lastSyncTime = Date.now();
+      } catch {}
+      writeInProgress = false;
+      // If anything changed while we were writing, write again immediately
+      if (writePending || lastEditTime > lastSyncTime) persistAll();
+    }
+
+    let persistTimer = null;
+    function schedulePersist() {
+      lastEditTime = Date.now();
+      clearTimeout(persistTimer);
+      persistTimer = setTimeout(persistAll, 1500);
+    }
+
+    // ── Create note ───────────────────────────────────────────────────
     btnNew.addEventListener('click', () => {
       newForm.classList.add('visible');
       newInput.value = '';
@@ -728,58 +763,69 @@
     });
 
     async function confirmCreate() {
-      const label = newInput.value.trim();
-      if (!label || boxes.has(label)) return;
+      const title = newInput.value.trim();
+      if (!title || boxes.has(title)) return;
       newForm.classList.remove('visible');
       newInput.value = '';
-      const { block, box } = makeBox(label, '');
+      notePairs.push([title, '']);
+      const { block, box, lbl } = makeBox(title, '');
       panel.appendChild(block);
-      boxes.set(label, { block, box });
-      await saveNote(label, '');
+      boxes.set(title, { block, box, lbl });
+      await persistAll();
     }
 
     // ── Delete note ───────────────────────────────────────────────────
-    async function deleteNote(label) {
-      const entry = boxes.get(label);
+    async function deleteNote(title) {
+      const entry = boxes.get(title);
       if (!entry) return;
       entry.block.remove();
-      boxes.delete(label);
-      saveTimers.delete(label);
-      try {
-        await fetch(`${NOTES_URL}/${encodeURIComponent(label)}`, { method: 'DELETE' });
-      } catch {}
+      boxes.delete(title);
+      notePairs = notePairs.filter(([t]) => t !== title);
+      await persistAll();
     }
 
-    // ── Save note — tracks pending writes so sync can't overwrite ─────
-    async function saveNote(label, content) {
-      // mark as dirty so loadNotes skips this label while save is in flight
-      saveTimers.set(label, (saveTimers.get(label) || 0) + 1);
-      try {
-        await fetch(`${NOTES_URL}/${encodeURIComponent(label)}`, {
-          method: 'POST',
-          body: content
-        });
-      } catch {}
-      const count = saveTimers.get(label);
-      if (count <= 1) saveTimers.delete(label);
-      else saveTimers.set(label, count - 1);
+    // ── Reorder: move title to newPos (1-based) ───────────────────────
+    async function reorderNote(title, newPos) {
+      const idx = notePairs.findIndex(([t]) => t === title);
+      if (idx === -1) return;
+      const [pair] = notePairs.splice(idx, 1);
+      const pos = Math.max(0, Math.min(newPos - 1, notePairs.length));
+      notePairs.splice(pos, 0, pair);
+      // Re-append DOM blocks in new order
+      notePairs.forEach(([t]) => {
+        const entry = boxes.get(t);
+        if (entry) panel.appendChild(entry.block);
+      });
+      await persistAll();
+    }
+
+    // ── Rename note ───────────────────────────────────────────────────
+    async function renameNote(oldTitle, newTitle) {
+      if (!newTitle || newTitle === oldTitle || boxes.has(newTitle)) return oldTitle;
+      const idx = notePairs.findIndex(([t]) => t === oldTitle);
+      if (idx === -1) return oldTitle;
+      notePairs[idx][0] = newTitle;
+      const entry = boxes.get(oldTitle);
+      boxes.delete(oldTitle);
+      boxes.set(newTitle, entry);
+      await persistAll();
+      return newTitle;
     }
 
     // ── Build a note block ────────────────────────────────────────────
-    function makeBox(labelArg, content) {
-      let label = labelArg;
+    function makeBox(titleArg, content) {
+      let title = titleArg;
       const block = document.createElement('div');
       block.className = 'list-block';
 
       const labelRow = document.createElement('div');
       labelRow.className = 'list-label-row';
 
-      // Inline-editable label
       const lbl = document.createElement('div');
       lbl.className = 'list-label';
-      lbl.textContent = label.replace(/^\d+/, '').trim();
+      lbl.textContent = title;
 
-      // ── Rename: click ✎ → label becomes editable ──────────────────
+      // ── Rename ────────────────────────────────────────────────────
       const renameBtn = document.createElement('button');
       renameBtn.className = 'btn-rename-note';
       renameBtn.title = 'Rename note';
@@ -789,9 +835,8 @@
         e.stopPropagation();
         lbl.contentEditable = 'true';
         lbl.focus();
-        // select all text so user can just type the new name
         const range = document.createRange();
-        const sel   = window.getSelection();
+        const sel = window.getSelection();
         range.selectNodeContents(lbl);
         sel.removeAllRanges();
         sel.addRange(range);
@@ -799,35 +844,63 @@
 
       lbl.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') { e.preventDefault(); lbl.blur(); }
-        if (e.key === 'Escape') { lbl.textContent = label.replace(/^\d+/, '').trim(); lbl.blur(); }
+        if (e.key === 'Escape') { lbl.textContent = title; lbl.blur(); }
       });
 
       lbl.addEventListener('blur', async () => {
         lbl.contentEditable = 'false';
-        const userTyped = lbl.textContent.trim();
-        if (!userTyped) { lbl.textContent = label.replace(/^\d+/, '').trim(); return; }
-
-        // Preserve any leading numeric prefix (e.g. "1 " or "12 ") from the original filename key
-        const prefixMatch = label.match(/^(\d+\s*)/);
-        const prefix = prefixMatch ? prefixMatch[1] : '';
-        const newLabel = prefix + userTyped;
-
-        if (newLabel === label) { lbl.textContent = label.replace(/^\d+/, '').trim(); return; }
-        if (boxes.has(newLabel)) { lbl.textContent = label.replace(/^\d+/, '').trim(); return; }
-
-        // Rename: save under new name, delete old
-        const { box } = boxes.get(label);
-        const currentContent = box.innerText;
-        boxes.delete(label);
-        boxes.set(newLabel, { block, box, lbl });
-        const oldLabel = label;
-        label = newLabel;
-
-        await saveNote(newLabel, currentContent);
-        await fetch(`${NOTES_URL}/${encodeURIComponent(oldLabel)}`, { method: 'DELETE' }).catch(() => {});
+        const typed = lbl.textContent.trim();
+        if (!typed) { lbl.textContent = title; return; }
+        title = await renameNote(title, typed);
+        lbl.textContent = title;
       });
 
-      // ── Delete: first click arms (✕ → ✓ green), second click deletes ──
+      // ── Reorder ───────────────────────────────────────────────────
+      const reorderBtn = document.createElement('button');
+      reorderBtn.className = 'btn-rename-note';
+      reorderBtn.title = 'Reorder note';
+      reorderBtn.textContent = '#';
+
+      const reorderInput = document.createElement('input');
+      reorderInput.className = 'reorder-input';
+      reorderInput.type = 'number';
+      reorderInput.min = '1';
+      reorderInput.style.display = 'none';
+
+      const reorderConfirm = document.createElement('button');
+      reorderConfirm.className = 'btn-rename-note reorder-confirm';
+      reorderConfirm.textContent = '✓';
+      reorderConfirm.style.display = 'none';
+
+      reorderBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentPos = notePairs.findIndex(([t]) => t === title) + 1;
+        reorderInput.value = currentPos || 1;
+        reorderInput.style.display = '';
+        reorderBtn.style.display = 'none';
+        reorderInput.focus();
+        reorderInput.select();
+      });
+
+      async function doReorder() {
+        const newPos = parseInt(reorderInput.value);
+        reorderInput.style.display = 'none';
+        reorderBtn.style.display = '';
+        if (!newPos) return;
+        await reorderNote(title, newPos);
+      }
+
+      reorderConfirm.addEventListener('click', (e) => { e.stopPropagation(); doReorder(); });
+      reorderInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doReorder();
+        if (e.key === 'Escape') {
+          reorderInput.style.display = 'none';
+          reorderConfirm.style.display = 'none';
+          reorderBtn.style.display = '';
+        }
+      });
+
+      // ── Delete ────────────────────────────────────────────────────
       const delBtn = document.createElement('button');
       delBtn.className = 'btn-delete-note';
       delBtn.title = 'Delete note';
@@ -837,7 +910,6 @@
       delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!delBtn.classList.contains('armed')) {
-          // Arm it
           delBtn.classList.add('armed');
           delBtn.textContent = '✓';
           armTimer = setTimeout(() => {
@@ -846,13 +918,14 @@
             armTimer = null;
           }, 1200);
         } else {
-          // Confirmed — delete
           clearTimeout(armTimer);
-          deleteNote(label);
+          deleteNote(title);
         }
       });
 
       labelRow.appendChild(lbl);
+      labelRow.appendChild(reorderBtn);
+      labelRow.appendChild(reorderInput);
       labelRow.appendChild(renameBtn);
       labelRow.appendChild(delBtn);
 
@@ -862,11 +935,11 @@
       box.spellcheck = false;
       box.innerText = content;
 
-      // Debounced save on input — uses a timer key per label
       let inputTimer = null;
       box.addEventListener('input', () => {
-        clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => saveNote(label, box.innerText), 1500);
+        const idx = notePairs.findIndex(([t]) => t === title);
+        if (idx !== -1) notePairs[idx][1] = box.innerText;
+        schedulePersist();
       });
 
       block.appendChild(labelRow);
@@ -874,42 +947,54 @@
       return { block, box, lbl };
     }
 
-    // ── Load notes — won't clobber boxes with pending saves ───────────
+    // ── Load notes from server ────────────────────────────────────────
     async function loadNotes() {
+      if (writeInProgress || lastEditTime > lastSyncTime) return;
       try {
         const r    = await fetch(NOTES_URL);
-        const data = await r.json();
+        const data = await r.json();  // [[title, content], ...]
 
         if (loadingEl) loadingEl.style.display = 'none';
 
-        Object.entries(data).forEach(([label, content]) => {
-          if (!boxes.has(label)) {
-            const { block, box, lbl } = makeBox(label, content);
-            panel.appendChild(block);
-            boxes.set(label, { block, box, lbl });
-          } else {
-            const { box } = boxes.get(label);
-            // Skip update if this note has a pending save in flight
-            if (saveTimers.has(label)) return;
-            if (document.activeElement === box) return;
-            if (box.innerText !== content) box.innerText = content;
+        // Build set of incoming titles
+        const incoming = new Map(data.map(([t, c]) => [t, c]));
+
+        // Remove notes no longer in server
+        boxes.forEach((_, t) => {
+          if (!incoming.has(t)) {
+            boxes.get(t).block.remove();
+            boxes.delete(t);
           }
         });
 
-        // Remove notes that no longer exist on server (only if no pending save)
-        boxes.forEach((_, label) => {
-          if (!Object.prototype.hasOwnProperty.call(data, label) && !saveTimers.has(label)) {
-            boxes.get(label).block.remove();
-            boxes.delete(label);
+        // Add new notes, update existing
+        data.forEach(([title, content]) => {
+          if (!boxes.has(title)) {
+            const { block, box, lbl } = makeBox(title, content);
+            panel.appendChild(block);
+            boxes.set(title, { block, box, lbl });
+          } else {
+            const { box } = boxes.get(title);
+            if (document.activeElement !== box && box.innerText !== content) {
+              box.innerText = content;
+            }
           }
         });
+
+        // Re-apply server order to DOM
+        data.forEach(([title]) => {
+          const entry = boxes.get(title);
+          if (entry) panel.appendChild(entry.block);
+        });
+
+        notePairs = data.map(([t, c]) => [t, c]);
+        lastSyncTime = Date.now();
 
       } catch {
         if (loadingEl) loadingEl.textContent = 'Could not reach server';
       }
     }
 
-    // Poll every 10s — no activity-triggered sync (that caused the revert bug)
     loadNotes();
     setInterval(loadNotes, 10000);
   })();
