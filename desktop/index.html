@@ -504,7 +504,7 @@
     <div id="lists-panel" class="panel">
       <div id="notes-header">
         <div class="panel-title">📋Notes</div>
-        <button id="btn-new-note" title="New note">+</button>
+        <button id="btn-new-note">+</button>
       </div>
       <div id="new-note-form">
         <input id="new-note-input" type="text" placeholder="Note name…" spellcheck="false" maxlength="40">
@@ -828,7 +828,6 @@
       // ── Rename ────────────────────────────────────────────────────
       const renameBtn = document.createElement('button');
       renameBtn.className = 'btn-rename-note';
-      renameBtn.title = 'Rename note';
       renameBtn.textContent = '✎';
 
       renameBtn.addEventListener('click', (e) => {
@@ -858,7 +857,6 @@
       // ── Reorder ───────────────────────────────────────────────────
       const reorderBtn = document.createElement('button');
       reorderBtn.className = 'btn-rename-note';
-      reorderBtn.title = 'Reorder note';
       reorderBtn.textContent = '#';
 
       const reorderInput = document.createElement('input');
@@ -903,7 +901,6 @@
       // ── Delete ────────────────────────────────────────────────────
       const delBtn = document.createElement('button');
       delBtn.className = 'btn-delete-note';
-      delBtn.title = 'Delete note';
       delBtn.textContent = '✕';
       let armTimer = null;
 
